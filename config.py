@@ -74,7 +74,7 @@ def _msg(name, default):
 
 
 MESSAGES = {
-    "START": _msg("START_MSG", "<b>›› Hello {First},\n\nI can store private files in Specified Channel and other users can access it from special link.\n\n<blockquote>Visit - @Od3ns_Animes</blockquote></b>"),
+    "START": _msg("START_MSG", "<b>›› Hello {first},\n\nI can store private files in Specified Channel and other users can access it from special link.\n\n<blockquote>Visit - @Od3ns_Animes</blockquote></b>"),
     "FSUB": _msg("FSUB_MSG", "<b>⚠️ Subscription Required...</b>\n\nYou haven't joined the required channel(s) yet! Please join them to use me."),
     "SHORT_MSG": _msg("SHORT_MSG", "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>"),
     "START_PHOTO": _msg("START_PHOTO", "https://graph.org/file/510affa3d4b6c911c12e3.jpg"),
