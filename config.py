@@ -62,6 +62,8 @@ try:
 except Exception:
     START_BUTTON = []
 
+SETTINGS_IMAGE = _env("SETTINGS_IMAGE", "https://files.catbox.moe/3yxex9.jpg")
+
 # ---------------- Shortener ----------------
 SHORT_URL = _env("SHORT_URL", "")
 SHORT_API = _env("SHORT_API", "")
