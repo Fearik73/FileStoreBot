@@ -1,6 +1,8 @@
 import motor.motor_asyncio
 from datetime import datetime
 
+from config import FSUB_COLLECTION, REQUEST_COLLECTION, SETTINGS_COLLECTION, USERS_COLLECTION
+
 USER_FILTER = {"_id": {"$type": ["int", "long"], "$ne": 1}}
 
 
@@ -12,18 +14,33 @@ class MongoDB:
             instance = super().__new__(cls)
             instance.client = motor.motor_asyncio.AsyncIOMotorClient(uri)
             instance.db = instance.client[db_name]
-            instance.user_data = instance.db["users"]
+            instance.user_data = instance.db[USERS_COLLECTION]
+            instance.fsub_data = instance.db[FSUB_COLLECTION]
+            instance.settings_data = instance.db[SETTINGS_COLLECTION]
             instance.channel_data = instance.db["channels"]
             instance.fsub_status = instance.db['fsub_status']
-            instance.request_sub = instance.db['request_sub']
+            instance.request_sub = instance.db[REQUEST_COLLECTION]
             instance.flinks = instance.db['flinks']
             instance.flink_seen = instance.db['flink_seen']
             cls._instances[(uri, db_name)] = instance
         return cls._instances[(uri, db_name)]
 
+    async def migrate_legacy(self):
+        moves = [("fsub_channels", self.fsub_data), ("fake_fsub", self.fsub_data), ("shortner_settings", self.settings_data)]
+        for doc_id, target in moves:
+            if target.name == self.user_data.name:
+                continue
+            doc = await self.user_data.find_one({"_id": doc_id})
+            if doc:
+                if not await target.find_one({"_id": doc_id}):
+                    await target.insert_one(doc)
+                await self.user_data.delete_one({"_id": doc_id})
+        if self.fsub_data.name != self.user_data.name:
+            await self.user_data.delete_one({"_id": 1})
+
     async def set_channels(self, channels: list[int]):
-        await self.user_data.update_one(
-            {"_id": 1},
+        await self.fsub_data.update_one(
+            {"_id": "req_channels"},
             {"$set": {"channels": channels}},
             upsert=True
         )
@@ -64,14 +81,14 @@ class MongoDB:
     # FSUB CHANNELS FUNCTIONS
 
     async def set_fsub_channels(self, fsub_data: dict):
-        await self.user_data.update_one(
+        await self.fsub_data.update_one(
             {"_id": "fsub_channels"},
             {"$set": {"channels": fsub_data}},
             upsert=True
         )
 
     async def get_fsub_channels(self) -> dict:
-        data = await self.user_data.find_one({"_id": "fsub_channels"})
+        data = await self.fsub_data.find_one({"_id": "fsub_channels"})
         return data.get("channels", {}) if data else {}
 
     async def add_fsub_channel(self, channel_id: int, channel_data: list):
@@ -85,11 +102,11 @@ class MongoDB:
         await self.set_fsub_channels(current_data)
 
     async def get_fake_channels(self) -> list[int]:
-        data = await self.user_data.find_one({"_id": "fake_fsub"})
+        data = await self.fsub_data.find_one({"_id": "fake_fsub"})
         return data.get("channels", []) if data else []
 
     async def set_fake_channels(self, channels: list[int]):
-        await self.user_data.update_one(
+        await self.fsub_data.update_one(
             {"_id": "fake_fsub"},
             {"$set": {"channels": channels}},
             upsert=True
@@ -116,14 +133,14 @@ class MongoDB:
     # SHORTNER SETTINGS FUNCTIONS
 
     async def set_shortner_settings(self, shortner_data: dict):
-        await self.user_data.update_one(
+        await self.settings_data.update_one(
             {"_id": "shortner_settings"},
             {"$set": {"settings": shortner_data}},
             upsert=True
         )
 
     async def get_shortner_settings(self) -> dict:
-        data = await self.user_data.find_one({"_id": "shortner_settings"})
+        data = await self.settings_data.find_one({"_id": "shortner_settings"})
         return data.get("settings", {}) if data else {}
 
     async def update_shortner_setting(self, key: str, value: str):
@@ -136,14 +153,14 @@ class MongoDB:
 
     # BOT SETTINGS FUNCTIONS
 
-    async def get_protect(self) -> bool:
-        data = await self.user_data.find_one({"_id": "bot_settings"})
-        return data.get("protect", True) if data else True
+    async def get_setting(self, key: str, default):
+        data = await self.settings_data.find_one({"_id": "bot_settings"})
+        return data.get(key, default) if data else default
 
-    async def set_protect(self, enabled: bool):
-        await self.user_data.update_one(
+    async def set_setting(self, key: str, value):
+        await self.settings_data.update_one(
             {"_id": "bot_settings"},
-            {"$set": {"protect": enabled}},
+            {"$set": {key: value}},
             upsert=True
         )
 
