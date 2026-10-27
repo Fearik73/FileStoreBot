@@ -7,6 +7,7 @@ from config import *
 async def main():
     app = []
 
+    # Create bot instance using config.py values
     app.append(
         Bot(
             SESSION,
@@ -15,7 +16,6 @@ async def main():
             TOKEN,
             [ADMIN_ID],
             MESSAGES,
-            AUTO_DEL,
             DB_URI,
             DB_NAME,
             API_ID,
