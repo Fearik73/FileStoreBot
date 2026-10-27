@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait
-from config import MSG_EFFECT
+from config import MSG_EFFECT, START_BUTTON
 from plugins.shortner import get_short
 from helper.helper_func import get_messages, force_sub, parse_payload, batch_auto_del_notification
 import asyncio
@@ -116,9 +116,8 @@ async def start_command(client: Client, message: Message):
             ))
         return
 
-    buttons = [[InlineKeyboardButton("Close", callback_data='close')]]
-    if user_id in client.admins:
-        buttons.insert(0, [InlineKeyboardButton("⛩️ ꜱᴇᴛᴛɪɴɢꜱ ⛩️", callback_data="settings")])
+    buttons = [InlineKeyboardButton(b["name"], url=b["url"]) for b in START_BUTTON]
+    reply_markup = InlineKeyboardMarkup([buttons[i:i + 2] for i in range(0, len(buttons), 2)]) if buttons else None
 
     photo = client.messages.get("START_PHOTO", "")
     start_caption = client.messages.get('START', 'Welcome, {mention}').format(
@@ -135,13 +134,13 @@ async def start_command(client: Client, message: Message):
             photo=photo,
             caption=start_caption,
             message_effect_id=MSG_EFFECT,
-            reply_markup=InlineKeyboardMarkup(buttons)
+            reply_markup=reply_markup
         )
     else:
         await client.send_message(
             chat_id=message.chat.id,
             text=start_caption,
             message_effect_id=MSG_EFFECT,
-            reply_markup=InlineKeyboardMarkup(buttons)
-                      )
+            reply_markup=reply_markup
+    )
         
