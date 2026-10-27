@@ -126,7 +126,7 @@ async def fsub_command(client: Client, message: Message):
         return
     args = message.command[1:]
     if len(args) < 2:
-        return await message.reply("<b>Usage:</b>\n<code>/fsub channel_id yes|no timer [x]</code>\n<code>/fsub link [always|once]</code>")
+        return
     status_msg = await message.reply("<b>Adding Force-Sub Channel.....</b>")
     try:
         if args[0].lower().startswith(("http://", "https://")):
@@ -153,7 +153,7 @@ async def ffsub_command(client: Client, message: Message):
         return
     args = message.command[1:]
     if not args or len(args) > 2:
-        return await message.reply("<b>Usage:</b> <code>/ffsub link [always|once]</code>")
+        return
     try:
         lid = await add_flink(client, args[0], args[1].lower() if len(args) == 2 else "always")
         await message.reply(f"<b>✅ Link F-Sub added</b>\n\n<b>▸ ID:</b> <code>{lid}</code>")
