@@ -134,6 +134,19 @@ class MongoDB:
     async def set_shortner_status(self, enabled: bool):
         await self.update_shortner_setting('enabled', enabled)
 
+    # BOT SETTINGS FUNCTIONS
+
+    async def get_protect(self) -> bool:
+        data = await self.user_data.find_one({"_id": "bot_settings"})
+        return data.get("protect", True) if data else True
+
+    async def set_protect(self, enabled: bool):
+        await self.user_data.update_one(
+            {"_id": "bot_settings"},
+            {"$set": {"protect": enabled}},
+            upsert=True
+        )
+
     # FSUB STATUS FUNCTIONS
 
     async def update_fsub_status(self, user_id: int, channel_id: int, status: str):
@@ -173,4 +186,5 @@ class MongoDB:
 
     async def remove_join_request(self, user_id: int, channel_id: int):
         await self.request_sub.delete_one({"user_id": user_id, "channel_id": channel_id})
+
     
