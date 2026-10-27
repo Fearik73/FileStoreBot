@@ -37,7 +37,7 @@ async def start_command(client: Client, message: Message):
 
         if user_id not in client.admins and not is_short_link and shortner_enabled:
             try:
-                short_link = get_short(f"https://t.me/{client.username}?start=sh_{payload}", client)
+                short_link = await get_short(f"https://t.me/{client.username}?start=sh_{payload}", client)
             except Exception as e:
                 client.LOGGER(__name__, client.name).warning(f"Shortener failed: {e}")
                 return await message.reply("Couldn't generate short link.")
@@ -46,17 +46,26 @@ async def start_command(client: Client, message: Message):
             short_caption = client.messages.get("SHORT_MSG", "").format(first=message.from_user.first_name)
             tutorial_link = getattr(client, 'tutorial_link', "https://t.me/How_to_Download_7x/26")
 
-            return await client.send_photo(
-                chat_id=message.chat.id,
-                photo=short_photo,
-                caption=short_caption,
-                reply_markup=InlineKeyboardMarkup([
-                    [
-                        InlineKeyboardButton("• ᴏᴘᴇɴ ʟɪɴᴋ", url=short_link),
-                        InlineKeyboardButton("ᴛᴜᴛᴏʀɪᴀʟ •", url=tutorial_link)
-                    ]
-                ])
-            )
+            short_markup = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("• ᴏᴘᴇɴ ʟɪɴᴋ", url=short_link),
+                    InlineKeyboardButton("ᴛᴜᴛᴏʀɪᴀʟ •", url=tutorial_link)
+                ]
+            ])
+            try:
+                return await client.send_photo(
+                    chat_id=message.chat.id,
+                    photo=short_photo,
+                    caption=short_caption,
+                    reply_markup=short_markup
+                )
+            except Exception as e:
+                client.LOGGER(__name__, client.name).warning(f"Short photo failed, sending text: {e}")
+                return await client.send_message(
+                    chat_id=message.chat.id,
+                    text=short_caption,
+                    reply_markup=short_markup
+                )
 
         try:
             ids = parse_payload(payload)
@@ -144,3 +153,4 @@ async def start_command(client: Client, message: Message):
             reply_markup=reply_markup
     )
 
+            
