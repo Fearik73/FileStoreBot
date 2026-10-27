@@ -80,46 +80,6 @@ def parse_bool(value):
 
 #===============================================================#
 
-@Client.on_callback_query(filters.regex('^add_fsub$'))
-async def add_fsub(client: Client, query: CallbackQuery):
-    from plugins.settings import fsub as show_fsub
-    await query.answer()
-    ask_channel_info = await client.ask(query.from_user.id, "Send channel id(negative integer value), request boolean(yes/no/true/false), timers(integer without decimal)(to enable it keep it greator than 0 otherwise the invite link will not have any timer to invalidate it) seperated by a space in the next 60 seconds! Add `x` at the end to make it a fake fsub channel.\n<blockquote expandable>Eg: `-10089479289 yes 5`\n\n__It means `-10089479289` is the force sub channel id, `yes` means to enable request it means the link will be request link and only after user sends request to the channel bot will work for that user even if you do not accept his request or user is not a member, `5` means timer in minutes aftetr 5 minutes the invite link will be expired.__</blockquote>", filters=filters.text, timeout=60)
-    try:
-        channel_info = ask_channel_info.text.split()
-        fake = channel_info[-1].lower() == 'x'
-        if fake:
-            channel_info = channel_info[:-1]
-        channel_id, request, timer = channel_info
-        channel_id = int(channel_id)
-        request = parse_bool(request)
-        if not timer.isdigit():
-            raise Exception("Timer is not a valid integer.")
-        name = await register_fsub(client, channel_id, request, int(timer), fake)
-        await show_fsub(client, query)
-        return await ask_channel_info.reply(f"__Channel with name: `{name.strip()}` is added as a force sub channel!!__")
-    except Exception as e:
-        return await ask_channel_info.reply(f"**Error:** `{e}`")
-
-#===============================================================#
-
-@Client.on_callback_query(filters.regex('^rm_fsub$'))
-async def rm_fsub(client: Client, query: CallbackQuery):
-    from plugins.settings import fsub as show_fsub
-    await query.answer()
-    ask_channel_info = await client.ask(query.from_user.id, "Send channel id(negative integer value) in the next 60 seconds!", filters=filters.text, timeout=60)
-    try:
-        channel_id = int(ask_channel_info.text)
-        if channel_id not in client.fsub_dict.keys():
-            return await ask_channel_info.reply("**This channel id is not in force sub list!**")
-        await unregister_fsub(client, channel_id)
-        await show_fsub(client, query)
-        return await ask_channel_info.reply(f"__Channel with id: `{channel_id}` has been removed as a force sub channel!!__")
-    except Exception as e:
-        return await ask_channel_info.reply(f"**Error:** `{e}`")
-
-#===============================================================#
-
 @Client.on_message(filters.command("fsub") & filters.private)
 async def fsub_command(client: Client, message: Message):
     if message.from_user.id not in client.admins:
@@ -217,3 +177,4 @@ async def status_command(client: Client, message: Message):
         ]
         text += "\n\n<b>⧉ <u>ʟɪɴᴋ ꜰ-ꜱᴜʙ</u>:</b>\n\n<blockquote>" + "\n\n".join(links) + "</blockquote>"
     await sent.edit(text, disable_web_page_preview=True)
+    
