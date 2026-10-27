@@ -46,10 +46,6 @@ UPSTREAM_BRANCH = _env("UPSTREAM_BRANCH", "main")
 os.environ["UPSTREAM_REPO"] = UPSTREAM_REPO
 os.environ["UPSTREAM_BRANCH"] = UPSTREAM_BRANCH
 
-# ---------------- Updater ----------------
-UPSTREAM_REPO = _env("UPSTREAM_REPO", "https://github.com/Fearik73/FileStoreBot")
-UPSTREAM_BRANCH = _env("UPSTREAM_BRANCH", "main")
-
 # ---------------- Database ----------------
 DB_URI = _required("DB_URI")
 DB_NAME = _required("DB_NAME")
