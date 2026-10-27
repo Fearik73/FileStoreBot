@@ -83,7 +83,7 @@ async def start_command(client: Client, message: Message):
                 ) if bool(client.messages.get('CAPTION', '')) and bool(msg.document)
                 else ("" if not msg.caption else msg.caption.html)
             )
-            reply_markup = msg.reply_markup if not client.disable_btn else None
+            reply_markup = msg.reply_markup
 
             try:
                 copied_msg = await msg.copy(
@@ -143,4 +143,5 @@ async def start_command(client: Client, message: Message):
             text=start_caption,
             message_effect_id=MSG_EFFECT,
             reply_markup=InlineKeyboardMarkup(buttons)
-        )
+                      )
+        
