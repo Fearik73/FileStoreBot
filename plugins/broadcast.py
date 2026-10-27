@@ -6,7 +6,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated, ChannelInvalid, PeerIdInvalid
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-from config import MSG_EFFECT
+from config import BROADCAST_EFFECT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ async def _send_done(client: Client, cmd_msg: Message, text: str):
         await client.send_message(
             cmd_msg.chat.id, text,
             reply_to_message_id=cmd_msg.id,
-            message_effect_id=MSG_EFFECT,
+            message_effect_id=BROADCAST_EFFECT_ID,
         )
     except Exception:
         logger.exception("Failed to send completion message with effect")
@@ -284,3 +284,4 @@ async def user_count(client: Client, message: Message):
         return
     total = await client.mongodb.total_users()
     await message.reply(f"<b>{total} Users are using this bot currently!</b>")
+                               
