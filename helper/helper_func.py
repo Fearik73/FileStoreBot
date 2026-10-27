@@ -20,6 +20,16 @@ def parse_payload(payload):
 
 #===============================================================#
 
+async def send_with_photo(client, chat_id, photo, text, reply_markup=None, **kwargs):
+    if photo:
+        try:
+            return await client.send_photo(chat_id, photo, caption=text, reply_markup=reply_markup, **kwargs)
+        except Exception as e:
+            client.LOGGER(__name__, client.name).warning(f"Photo failed, sending text only: {e}")
+    return await client.send_message(chat_id, text, reply_markup=reply_markup, **kwargs)
+
+#===============================================================#
+
 async def get_messages(client, message_ids):
     messages = []
     total_messages = 0
@@ -174,16 +184,7 @@ def force_sub(func):
     async def wrapper(client: Client, message: Message):
         if not client.fsub_dict and not client.flink_dict:
             return await func(client, message)
-        photo = client.messages.get('FSUB_PHOTO', '')
-        if photo:
-            msg = await message.reply_photo(
-                caption="<b>ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ.....</b>",
-                photo=photo
-            )
-        else:
-            msg = await message.reply(
-                "<code><b>ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ.....</b></code>"
-            )
+        msg = await message.reply("<b>ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ.....</b>")
 
         raw_payload = message.command[1] if len(message.command) > 1 else None
         is_retry = False
@@ -248,19 +249,15 @@ def force_sub(func):
 
         retry_payload = f"retry_{original_payload}" if original_payload else "retry"
         rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
-        rows.append([InlineKeyboardButton("🔄 Try Again", url=f"https://t.me/{client.username}?start={retry_payload}")])
+        rows.append([InlineKeyboardButton("Try Again", url=f"https://t.me/{client.username}?start={retry_payload}")])
 
         buttons_markup = InlineKeyboardMarkup(rows)
 
         try:
-            await msg.edit_text(text=channels_message, reply_markup=buttons_markup)
-        except Exception as e:
-            client.LOGGER(__name__, client.name).warning(f"Error updating force sub message: {e}")
-            try:
-                await msg.delete()
-                await message.reply(text=channels_message, reply_markup=buttons_markup)
-            except Exception:
-                pass
+            await msg.delete()
+        except Exception:
+            pass
+        await send_with_photo(client, message.chat.id, client.messages.get('FSUB_PHOTO', ''), channels_message, buttons_markup)
 
         for lid in pending_links:
             if client.flink_dict.get(lid, {}).get("mode") == "once":
@@ -302,48 +299,25 @@ def convert_time(duration_seconds: int) -> str:
 #.........Auto Delete Functions.......#
 #===============================================================#
 
-DEL_MSG = """<b>This File is deleting automatically in <a href="https://t.me/{username}">{time}</a>.. Forward in your Saved Messages..!</b>"""
-
-#Function for batch auto delete - sends one notification for all files
-async def batch_auto_del_notification(bot_username, messages, delay_time, transfer_link, chat_id, client):
-    """Send one notification for batch of files and delete all after timer"""
+async def batch_auto_del_notification(messages, delay_time, chat_id, client):
     if not messages:
         return
-        
-    # Send single countdown notification
+
     notification_msg = await client.send_message(
         chat_id=chat_id,
-        text=DEL_MSG.format(username=bot_username, time=convert_time(delay_time)),
-        disable_web_page_preview=True
+        text=f"<blockquote><b>This File is deleting automatically in {convert_time(delay_time)}. Forward in your Saved Messages..!</b></blockquote>"
     )
-    
+
     await asyncio.sleep(delay_time)
-    
-    # Delete all file messages
+
     for msg in messages:
         try:
             await msg.delete()
         except Exception as e:
-            print(f"Error deleting message {getattr(msg, 'id', 'Unknown')}: {e}")
-    
-    # Update notification with get files button
+            client.LOGGER(__name__, client.name).warning(f"Error deleting message {getattr(msg, 'id', 'Unknown')}: {e}")
+
     try:
-        if transfer_link:
-            try:
-                name = "• ɢᴇᴛ ғɪʟᴇs •"
-                link = f"https://t.me/{bot_username}?start={transfer_link}"
-                button = [[InlineKeyboardButton(text=name, url=link), InlineKeyboardButton(text="ᴄʟᴏsᴇ •", callback_data="close")]]
-                
-                await notification_msg.edit_text(
-                    text=f"<b>›› Pʀᴇᴠɪᴏᴜs Mᴇssᴀɢᴇ ᴡᴀs Dᴇʟᴇᴛᴇᴅ\n\nIғ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɢᴇᴛ ᴛʜᴇ ғɪʟᴇs ᴀɢᴀɪɴ, ᴛʜᴇɴ ᴄʟɪᴄᴋ: <a href={link}>{name}</a> ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴇʟsᴇ ᴄʟᴏsᴇ ᴛʜɪs ᴍᴇssᴀɢᴇ.</b>",
-                    reply_markup=InlineKeyboardMarkup(button),
-                    disable_web_page_preview=True
-                )
-            except Exception as e:
-                await notification_msg.edit_text(f"<b>›› Pʀᴇᴠɪᴏᴜs Mᴇssᴀɢᴇ ᴡᴀs Dᴇʟᴇᴛᴇᴅ</b>")
-                print(f"Error editing notification message: {e}")
-        else:
-            await notification_msg.edit_text(f"<b>Pʀᴇᴠɪᴏᴜs Mᴇssᴀɢᴇ ᴡᴀs Dᴇʟᴇᴛᴇᴅ</b>")
+        await notification_msg.edit_text("<b><i>💬 The Previous Files Has Been Deleted</i></b>")
     except Exception as e:
-        print(f"Error updating notification message: {e}")
-                        
+        client.LOGGER(__name__, client.name).warning(f"Error updating notification message: {e}")
+                
