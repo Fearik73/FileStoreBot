@@ -1,5 +1,18 @@
+import ast
 import logging
+import os
 from logging.handlers import RotatingFileHandler
+
+def _load_env(path):
+    env = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for node in ast.parse(f.read()).body:
+                if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+                    env[node.targets[0].id] = ast.literal_eval(node.value)
+    return env
+
+_ENV = _load_env(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.env"))
 
 # Bot Configuration
 LOG_FILE_NAME = "bot.log"
@@ -22,7 +35,7 @@ WORKERS = 5
 DB_URI = "mongodb"
 DB_NAME = "yato"
 
-FSUBS = [[-1003016571084, True, 10]] # Force Subscription Channels [channel_id, request_enabled, timer_in_minutes]
+FSUBS = _ENV.get("FSUBS", []) # loaded from config.env
 # Database Channel (Primary)
 DB_CHANNEL =    # just put channel id dont add ""
 # Auto Delete Timer (seconds)
@@ -30,7 +43,6 @@ AUTO_DEL = 300
 # Admin IDs
 ADMINS = [6497757690, 6103092779]
 # Bot Settings
-DISABLE_BTN = True
 PROTECT = True
 
 # Messages Configuration
@@ -59,3 +71,4 @@ def LOGGER(name: str, client_name: str) -> logging.Logger:
     logger.addHandler(stream_handler)
 
     return logger
+    
