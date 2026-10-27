@@ -14,14 +14,13 @@ async def main():
             WORKERS,
             DB_CHANNEL,
             TOKEN,
-            ADMINS,
+            [ADMIN_ID],
             MESSAGES,
             AUTO_DEL,
             DB_URI,
             DB_NAME,
             API_ID,
-            API_HASH,
-            PROTECT
+            API_HASH
         )
     )
 
