@@ -40,6 +40,12 @@ MSG_EFFECT = int(_env("MSG_EFFECT", "0")) or None
 DB_URI = _required("DB_URI")
 DB_NAME = _required("DB_NAME")
 
+# --------------- Start Buttons -----------------
+START_BUTTON='[
+  {"name": "Ongoing Anime", "url": "http://t.me/Od3nsLinks_bot?start=18LTEwMDI2NzQyMDM5NTu9cVY="},
+  {"name": "Finished Anime", "url": "http://t.me/Od3nsLinks_bot?start=16LTEwMDI2NjMwODUzH19vNzg="}
+]'
+
 # ---------------- Bot settings ----------------
 AUTO_DEL = int(_env("AUTO_DEL", "300"))
 PROTECT = _env("PROTECT", "true").lower() in ("1", "true", "yes", "on")
