@@ -3,9 +3,8 @@ import random
 import string
 from config import SHORT_URL, SHORT_API, MESSAGES
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaPhoto
 from pyrogram.errors.pyromod import ListenerTimeout
-from helper.helper_func import force_sub
 
 # ✅ In-memory cache
 shortened_urls_cache = {}
@@ -252,3 +251,5 @@ async def test_shortner(client: Client, query: CallbackQuery):
     await query.message.edit_text(msg, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('◂ ʙᴀᴄᴋ', 'shortner')]]))
 
 
+
+                                  
