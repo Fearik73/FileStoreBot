@@ -74,8 +74,8 @@ def _msg(name, default):
 
 
 MESSAGES = {
-    "START": _msg("START_MSG", "<b>›› ʜᴇʏ!!, {first} ~ <blockquote>ʟᴏᴠᴇ ᴘᴏʀɴʜᴡᴀ? ɪ ᴀᴍ ᴍᴀᴅᴇ ᴛᴏ ʜᴇʟᴘ ʏᴏᴜ ᴛᴏ ғɪɴᴅ ᴡʜᴀᴛ ʏᴏᴜ aʀᴇ ʟᴏᴏᴋɪɴɢ ꜰᴏʀ.</blockquote></b>"),
-    "FSUB": _msg("FSUB_MSG", "<b><blockquote>›› ʜᴇʏ ×</blockquote>\n  ʏᴏᴜʀ ғɪʟᴇ ɪs ʀᴇᴀᴅʏ ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ sᴜʙsᴄʀɪʙᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ, sᴜʙsᴄʀɪʙᴇ ɴᴏᴡ ᴛᴏ ɢᴇᴛ ʏᴏᴜʀ ғɪʟᴇs</b>"),
+    "START": _msg("START_MSG", "<b>›› Hello {First},\n\nI can store private files in Specified Channel and other users can access it from special link.\n\n<blockquote>Visit - @Od3ns_Animes</blockquote></b>"),
+    "FSUB": _msg("FSUB_MSG", "<b>⚠️ Subscription Required...</b>\n\nYou haven't joined the required channel(s) yet! Please join them to use me."),
     "SHORT_MSG": _msg("SHORT_MSG", "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>"),
     "START_PHOTO": _msg("START_PHOTO", "https://graph.org/file/510affa3d4b6c911c12e3.jpg"),
     "FSUB_PHOTO": _msg("FSUB_PHOTO", "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg"),
