@@ -12,7 +12,7 @@ from plugins.restart import RESTART_FILE, notify_restart
 
 
 class Bot(Client):
-    def __init__(self, session, workers, db, fsub, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash, protect):
+    def __init__(self, session, workers, db, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash, protect):
         super().__init__(
             name=session,
             api_hash=api_hash,
@@ -26,7 +26,6 @@ class Bot(Client):
         self.LOGGER = LOGGER
         self.name = session
         self.db = db
-        self.fsub = fsub
         self.owner = OWNER_ID
         self.fsub_dict = {}
         self.admins = admins + [OWNER_ID] if OWNER_ID not in admins else admins
@@ -43,38 +42,11 @@ class Bot(Client):
         usr_bot_me = await self.get_me()
         self.uptime = datetime.now()
         
-        # Load fsub channels from static config first
-        if len(self.fsub) > 0:
-            for channel in self.fsub:
-                try:
-                    chat = await self.get_chat(channel[0])
-                    name = chat.title
-                    link = None
-                    if not channel[1]:
-                        link = chat.invite_link
-                    if not link and not channel[2]:
-                        chat_link = await self.create_chat_invite_link(channel[0], creates_join_request=channel[1])
-                        link = chat_link.invite_link
-                    if not channel[1]:
-                        self.fsub_dict[channel[0]] = [name, link, False, 0]
-                    if channel[1]:
-                        self.fsub_dict[channel[0]] = [name, link, True, 0]
-                        self.req_channels.append(channel[0])
-                    if channel[2] > 0:
-                        self.fsub_dict[channel[0]] = [name, None, channel[1], channel[2]]
-                except Exception as e:
-                    self.LOGGER(__name__, self.name).warning("Bot can't Export Invite link from Force Sub Channel!")
-                    self.LOGGER(__name__, self.name).warning("\nBot Stopped.")
-                    sys.exit()
-                    
         # Load dynamically added fsub channels from database
         try:
             db_fsub_channels = await self.mongodb.get_fsub_channels()
             for channel_id_str, channel_data in db_fsub_channels.items():
                 channel_id = int(channel_id_str)
-                # Skip if already loaded from static config
-                if channel_id in self.fsub_dict:
-                    continue
                 try:
                     chat = await self.get_chat(channel_id)
                     name = chat.title
@@ -146,4 +118,3 @@ async def web_app():
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
 
-    
