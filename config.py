@@ -1,60 +1,65 @@
-import ast
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-def _load_env(path):
-    env = {}
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            for node in ast.parse(f.read()).body:
-                if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
-                    env[node.targets[0].id] = ast.literal_eval(node.value)
-    return env
+from dotenv import load_dotenv
 
-_ENV = _load_env(os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.env"))
+_ENV_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.env")
+if os.path.exists(_ENV_FILE):
+    load_dotenv(_ENV_FILE)
+else:
+    load_dotenv()
 
-# Bot Configuration
-LOG_FILE_NAME = "bot.log"
-PORT = '5010'
-OWNER_ID = 6497757690
 
-MSG_EFFECT = 5046509860389126442
+def _env(name, default):
+    value = os.environ.get(name)
+    return default if value is None or not value.strip() else value.strip()
 
-SHORT_URL = "linkshortify.com" # shortner url 
-SHORT_API = "" 
-SHORT_TUT = "https://t.me/How_to_Download_7x/26"
 
-# Bot Configuration
-SESSION = "yato"
-TOKEN = "642712"
-API_ID = ""
-API_HASH = ""
-WORKERS = 5
+def _required(name):
+    value = os.environ.get(name)
+    if value is None or not value.strip():
+        raise SystemExit(f"❌ Missing required variable {name}.\nFill it in config.env")
+    return value.strip()
 
-DB_URI = "mongodb"
-DB_NAME = "yato"
 
-FSUBS = _ENV.get("FSUBS", []) # loaded from config.env
-# Database Channel (Primary)
-DB_CHANNEL =    # just put channel id dont add ""
-# Auto Delete Timer (seconds)
-AUTO_DEL = 300
-# Admin IDs
-ADMINS = [6497757690, 6103092779]
-# Bot Settings
-PROTECT = True
+# ---------------- Telegram / bot ----------------
+API_ID = int(_required("API_ID"))
+API_HASH = _required("API_HASH")
+TOKEN = _required("TOKEN")
+SESSION = _required("SESSION")
+OWNER_ID = int(_required("OWNER_ID"))
+ADMINS = [int(x) for x in _env("ADMINS", "").split(",") if x.strip()]
+DB_CHANNEL = int(_required("DB_CHANNEL"))
+WORKERS = int(_env("WORKERS", "5"))
+PORT = _env("PORT", "5010")
+LOG_FILE_NAME = _env("LOG_FILE_NAME", "bot.log")
+MSG_EFFECT = int(_env("MSG_EFFECT", "0")) or None
 
-# Messages Configuration
-MESSAGES = {
-    "START": "<b>›› ʜᴇʏ!!, {first} ~ <blockquote>ʟᴏᴠᴇ ᴘᴏʀɴʜᴡᴀ? ɪ ᴀᴍ ᴍᴀᴅᴇ ᴛᴏ ʜᴇʟᴘ ʏᴏᴜ ᴛᴏ ғɪɴᴅ ᴡʜᴀᴛ ʏᴏᴜ aʀᴇ ʟᴏᴏᴋɪɴɢ ꜰᴏʀ.</blockquote></b>",
-    "FSUB": "<b><blockquote>›› ʜᴇʏ ×</blockquote>\n  ʏᴏᴜʀ ғɪʟᴇ ɪs ʀᴇᴀᴅʏ ‼️ ʟᴏᴏᴋs ʟɪᴋᴇ ʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ sᴜʙsᴄʀɪʙᴇᴅ ᴛᴏ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ʏᴇᴛ, sᴜʙsᴄʀɪʙᴇ ɴᴏᴡ ᴛᴏ ɢᴇᴛ ʏᴏᴜʀ ғɪʟᴇs</b>",
-    "SHORT_MSG": "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>",
-    "START_PHOTO": "https://graph.org/file/510affa3d4b6c911c12e3.jpg",
-    "FSUB_PHOTO": "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg",
-    "SHORT_PIC": "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg",
-    "SHORT": "https://telegra.ph/file/8aaf4df8c138c6685dcee-05d3b183d4978ec347.jpg"
-}
+# ---------------- Database ----------------
+DB_URI = _required("DB_URI")
+DB_NAME = _required("DB_NAME")
+
+# ---------------- Bot settings ----------------
+AUTO_DEL = int(_env("AUTO_DEL", "300"))
+PROTECT = _env("PROTECT", "true").lower() in ("1", "true", "yes", "on")
+
+# ---------------- Shortener ----------------
+SHORT_URL = _env("SHORT_URL", "")
+SHORT_API = _env("SHORT_API", "")
+SHORT_TUT = _env("SHORT_TUT", "")
+
+# ---------------- Messages ----------------
+MESSAGES = {k: v for k, v in {
+    "START": os.environ.get("START_MSG"),
+    "FSUB": os.environ.get("FSUB_MSG"),
+    "SHORT_MSG": os.environ.get("SHORT_MSG"),
+    "START_PHOTO": os.environ.get("START_PHOTO"),
+    "FSUB_PHOTO": os.environ.get("FSUB_PHOTO"),
+    "SHORT_PIC": os.environ.get("SHORT_PIC"),
+    "SHORT": os.environ.get("SHORT_PANEL_PIC"),
+}.items() if v}
+
 
 def LOGGER(name: str, client_name: str) -> logging.Logger:
     logger = logging.getLogger(name)
