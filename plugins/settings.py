@@ -77,7 +77,8 @@ async def fsub(client, query):
 async def protect(client, query):
     if query.from_user.id not in client.admins:
         return await query.answer('❌ ᴏɴʟʏ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ᴜꜱᴇ ᴛʜɪꜱ!', show_alert=True)
-    client.protect = False if client.protect else True
+    client.protect = not client.protect
+    await client.mongodb.set_protect(client.protect)
     return await settings(client, query)
 
 #===============================================================#
@@ -103,3 +104,4 @@ __Enter new integer value of auto delete timer in seconds, keep 0 to disable aut
         return await query.message.edit_text("**This is not an integer value!!**", reply_markup=back)
     except ListenerTimeout:
         return await query.message.edit_text("**Timeout, try again!**", reply_markup=back)
+        
