@@ -22,8 +22,7 @@ async def main():
             DB_NAME,
             API_ID,
             API_HASH,
-            PROTECT,
-            DISABLE_BTN
+            PROTECT
         )
     )
 
