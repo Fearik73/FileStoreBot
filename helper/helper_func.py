@@ -247,9 +247,10 @@ def force_sub(func):
             buttons.append(InlineKeyboardButton("• ᴊᴏɪɴ ʟɪɴᴋ •", url=client.flink_dict[lid]["link"]))
 
         retry_payload = f"retry_{original_payload}" if original_payload else "retry"
-        buttons.append(InlineKeyboardButton("🔄 Try Again", url=f"https://t.me/{client.username}?start={retry_payload}"))
+        rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
+        rows.append([InlineKeyboardButton("🔄 Try Again", url=f"https://t.me/{client.username}?start={retry_payload}")])
 
-        buttons_markup = InlineKeyboardMarkup([[button] for button in buttons])
+        buttons_markup = InlineKeyboardMarkup(rows)
 
         try:
             await msg.edit_text(text=channels_message, reply_markup=buttons_markup)
@@ -345,3 +346,4 @@ async def batch_auto_del_notification(bot_username, messages, delay_time, transf
             await notification_msg.edit_text(f"<b>Pʀᴇᴠɪᴏᴜs Mᴇssᴀɢᴇ ᴡᴀs Dᴇʟᴇᴛᴇᴅ</b>")
     except Exception as e:
         print(f"Error updating notification message: {e}")
+                        
