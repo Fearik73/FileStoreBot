@@ -1,6 +1,5 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import time
 
 import psutil
 import shutil
@@ -22,7 +21,7 @@ async def usage_cmd(client: Client, message: Message):
         total_users = "ᴇʀʀᴏʀ"
 
     # Bot uptime calculation
-    from datetime import datetime, timedelta
+    from datetime import datetime
     uptime_duration = datetime.now() - getattr(client, 'uptime', datetime.now())
     days = uptime_duration.days
     hours, remainder = divmod(uptime_duration.seconds, 3600)
