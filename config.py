@@ -62,27 +62,31 @@ try:
 except Exception:
     START_BUTTON = []
 
-SETTINGS_IMAGE = _env("SETTINGS_IMAGE", "https://files.catbox.moe/3yxex9.jpg")
-
 # ---------------- Shortener ----------------
 SHORT_URL = _env("SHORT_URL", "")
 SHORT_API = _env("SHORT_API", "")
 SHORT_TUT = _env("SHORT_TUT", "")
 
 # ---------------- Messages ----------------
+def _photo(name, default):
+    value = os.environ.get(name)
+    return default if value is None else value.strip()
+
+
 def _msg(name, default):
     value = os.environ.get(name)
     return value.replace("\\n", "\n") if value and value.strip() else default
 
 
+SETTINGS_IMAGE = _photo("SETTINGS_IMAGE", "https://files.catbox.moe/3yxex9.jpg")
+
 MESSAGES = {
     "START": _msg("START_MSG", "<b>›› Hello {first},\n\nI can store private files in Specified Channel and other users can access it from special link.\n\n<blockquote>Visit - @Od3ns_Animes</blockquote></b>"),
     "FSUB": _msg("FSUB_MSG", "<b>⚠️ Subscription Required...</b>\n\nYou haven't joined the required channel(s) yet! Please join them to use me."),
     "SHORT_MSG": _msg("SHORT_MSG", "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>"),
-    "START_PHOTO": _msg("START_PHOTO", "https://graph.org/file/510affa3d4b6c911c12e3.jpg"),
-    "FSUB_PHOTO": _msg("FSUB_PHOTO", "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg"),
-    "SHORT_PIC": _msg("SHORT_PIC", "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg"),
-    "SHORT": _msg("SHORT_PANEL_PIC", "https://telegra.ph/file/8aaf4df8c138c6685dcee-05d3b183d4978ec347.jpg"),
+    "START_PHOTO": _photo("START_PHOTO", ""),
+    "FSUB_PHOTO": _photo("FSUB_PHOTO", ""),
+    "SHORT_PIC": _photo("SHORT_PIC", ""),
 }
 
 
