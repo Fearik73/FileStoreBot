@@ -65,10 +65,4 @@ async def root_route_handler(request):
     </html>
     """
     return web.Response(text=html_page, content_type="text/html")
-
-
-app = web.Application()
-app.add_routes(routes)
-
-if __name__ == "__main__":
-    web.run_app(app, port=8080)
+    
