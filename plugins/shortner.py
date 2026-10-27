@@ -14,35 +14,35 @@ def generate_random_alphanumeric():
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(8))
 
-def get_short(url, client):
+def _short_sync(api_url):
+    response = requests.get(api_url, timeout=10)
+    return response.status_code, response.json()
 
-    # Check if shortner is enabled
-    shortner_enabled = getattr(client, 'shortner_enabled', True)
-    if not shortner_enabled:
-        return url  # Return original URL if shortner is disabled
 
-    # Step 2: Check cache
+async def get_short(url, client):
+    if not getattr(client, 'shortner_enabled', True):
+        return url
+
     if url in shortened_urls_cache:
         return shortened_urls_cache[url]
 
+    short_url = getattr(client, 'short_url', SHORT_URL)
+    short_api = getattr(client, 'short_api', SHORT_API)
+    if not short_url or not short_api:
+        return url
+
     try:
         alias = generate_random_alphanumeric()
-        # Use dynamic shortner settings from client if available
-        short_url = getattr(client, 'short_url', SHORT_URL)
-        short_api = getattr(client, 'short_api', SHORT_API)
-        
         api_url = f"https://{short_url}/api?api={short_api}&url={url}&alias={alias}"
-        response = requests.get(api_url)
-        rjson = response.json()
-
-        if rjson.get("status") == "success" and response.status_code == 200:
-            short_url = rjson.get("shortenedUrl", url)
-            shortened_urls_cache[url] = short_url
-            return short_url
+        status, rjson = await asyncio.to_thread(_short_sync, api_url)
+        if status == 200 and rjson.get("status") == "success":
+            result = rjson.get("shortenedUrl", url)
+            shortened_urls_cache[url] = result
+            return result
     except Exception as e:
         print(f"[Shortener Error] {e}")
 
-    return url  # fallback
+    return url
 
 #===============================================================#
 
@@ -197,3 +197,4 @@ async def test_shortner(client: Client, query: CallbackQuery):
             text = f"<b>❌ Shortner Test Failed</b>\n\n<b>Error:</b> {e}"
     await edit_msg(query.message, text, BACK)
 
+                                  
