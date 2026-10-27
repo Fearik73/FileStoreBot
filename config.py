@@ -1,8 +1,7 @@
+import json
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-
-import json
 
 from dotenv import load_dotenv
 
@@ -23,10 +22,11 @@ def _required(name):
     if value is None or not value.strip():
         raise SystemExit(f"❌ Missing required variable {name}.\nFill it in config.env")
     return value.strip()
-    
-# ----------------- Effect ID ---------------------------
 
-MSG_EFFECT = 5046509860389126442
+
+# ----------------- Effect IDs ---------------------------
+MESSAGE_EFFECT_ID = 5104841245755180586
+BROADCAST_EFFECT_ID = 5046509860389126442
 
 # ---------------- Telegram ----------------
 API_ID = int(_required("API_ID"))
@@ -34,8 +34,6 @@ API_HASH = _required("API_HASH")
 TOKEN = _required("TOKEN")
 SESSION = _required("SESSION")
 ADMIN_ID = int(_env("ADMIN_ID", "7375326036"))
-OWNER_ID = ADMIN_ID
-ADMINS = [ADMIN_ID]
 DB_CHANNEL = int(_required("DB_CHANNEL"))
 WORKERS = int(_env("WORKERS", "200"))
 LOG_FILE_NAME = _env("LOG_FILE_NAME", "bot.log")
@@ -49,6 +47,10 @@ os.environ["UPSTREAM_BRANCH"] = UPSTREAM_BRANCH
 # ---------------- Database ----------------
 DB_URI = _required("DB_URI")
 DB_NAME = _required("DB_NAME")
+USERS_COLLECTION = _env("USERS_COLLECTION", "users")
+FSUB_COLLECTION = _env("FSUB_COLLECTION", "fsub")
+REQUEST_COLLECTION = _env("REQUEST_COLLECTION", "request_sub")
+SETTINGS_COLLECTION = _env("SETTINGS_COLLECTION", "settings")
 
 # --------------- Start Buttons -----------------
 _START_BUTTON_RAW = _env("START_BUTTON", '''[
@@ -59,9 +61,6 @@ try:
     START_BUTTON = [b for b in json.loads(_START_BUTTON_RAW) if b.get("name") and b.get("url")]
 except Exception:
     START_BUTTON = []
-
-# ---------------- Bot settings ----------------
-AUTO_DEL = int(_env("AUTO_DEL", "300"))
 
 # ---------------- Shortener ----------------
 SHORT_URL = _env("SHORT_URL", "")
