@@ -13,7 +13,6 @@ async def main():
             SESSION,
             WORKERS,
             DB_CHANNEL,
-            FSUBS,
             TOKEN,
             ADMINS,
             MESSAGES,
