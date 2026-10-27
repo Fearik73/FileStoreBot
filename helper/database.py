@@ -1,5 +1,5 @@
 import motor.motor_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 
 USER_FILTER = {"_id": {"$type": ["int", "long"], "$ne": 1}}
 
@@ -27,10 +27,6 @@ class MongoDB:
             {"$set": {"channels": channels}},
             upsert=True
         )
-
-    async def get_channels(self) -> list[int]:
-        data = await self.user_data.find_one({"_id": 1})
-        return data.get("channels", []) if data else []
 
     async def add_channel_user(self, channel_id: int, user_id: int):
         await self.channel_data.update_one(
@@ -64,9 +60,6 @@ class MongoDB:
 
     async def total_users(self) -> int:
         return await self.user_data.count_documents(USER_FILTER)
-
-    async def del_user(self, user_id: int):
-        await self.user_data.delete_one({'_id': user_id})
 
     # FSUB CHANNELS FUNCTIONS
 
@@ -180,3 +173,4 @@ class MongoDB:
 
     async def remove_join_request(self, user_id: int, channel_id: int):
         await self.request_sub.delete_one({"user_id": user_id, "channel_id": channel_id})
+    
