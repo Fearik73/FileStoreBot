@@ -1,12 +1,9 @@
-from aiohttp import web
-from plugins import web_server
-
 from pyrogram import Client
 import os
 import sys
 import time
 from datetime import datetime
-from config import LOGGER, PORT, ADMIN_ID, SHORT_URL, SHORT_API, SHORT_TUT
+from config import LOGGER, ADMIN_ID, SHORT_URL, SHORT_API, SHORT_TUT
 from helper import MongoDB
 from plugins.restart import RESTART_FILE, notify_restart
 
@@ -108,18 +105,11 @@ class Bot(Client):
             await notify_restart(self)
         else:
             try:
-                restart_message = "<b>♻️ Bot Restarted Successfully</b>"
+                restart_message = "<b>›› ʜᴇʏ sᴇɴᴘᴀɪ!!\n ɪ'ᴍ ᴀʟɪᴠᴇ ɴᴏᴡ 🍃...</b>"
                 await self.send_message(chat_id=self.owner, text=restart_message)
             except Exception as e:
                 self.LOGGER(__name__, self.name).warning(f"Failed to send restart notification to owner: {e}")
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__, self.name).info("Bot stopped.")
-
-
-async def web_app():
-    app = web.AppRunner(await web_server())
-    await app.setup()
-    bind_address = "0.0.0.0"
-    await web.TCPSite(app, bind_address, PORT).start()
-
+        
