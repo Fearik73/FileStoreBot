@@ -37,7 +37,7 @@ ADMIN_ID = int(_env("ADMIN_ID", "7375326036"))
 OWNER_ID = ADMIN_ID
 ADMINS = [ADMIN_ID]
 DB_CHANNEL = int(_required("DB_CHANNEL"))
-WORKERS = int(_env("WORKERS", "5"))
+WORKERS = int(_env("WORKERS", "200"))
 LOG_FILE_NAME = _env("LOG_FILE_NAME", "bot.log")
 
 # ---------------- Updater ----------------
