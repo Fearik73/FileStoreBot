@@ -1,10 +1,7 @@
-#(©) Codeflix_Bots
-
 from aiohttp import web
 from plugins import web_server
 
 from pyrogram import Client
-from pyrogram.enums import ParseMode
 import os
 import sys
 import time
@@ -13,11 +10,9 @@ from config import LOGGER, PORT, OWNER_ID, SHORT_URL, SHORT_API, SHORT_TUT
 from helper import MongoDB
 from plugins.restart import RESTART_FILE, notify_restart
 
-version = "v1.0.0"
-
 
 class Bot(Client):
-    def __init__(self, session, workers, db, fsub, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash, protect, disable_btn):
+    def __init__(self, session, workers, db, fsub, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash, protect):
         super().__init__(
             name=session,
             api_hash=api_hash,
@@ -38,8 +33,6 @@ class Bot(Client):
         self.messages = messages
         self.auto_del = auto_del
         self.protect = protect
-        self.req_fsub = {}
-        self.disable_btn = disable_btn
         self.mongodb = MongoDB(db_uri, db_name)
         self.req_channels = []
         self.flink_dict = {}
@@ -122,7 +115,6 @@ class Bot(Client):
         
         try:
             db_channel = await self.get_chat(self.db)
-            self.db_channel = db_channel
             test = await self.send_message(chat_id = db_channel.id, text = "Testing Message by @ProYato")
             await test.delete()
         except Exception as e:
@@ -153,4 +145,5 @@ async def web_app():
     await app.setup()
     bind_address = "0.0.0.0"
     await web.TCPSite(app, bind_address, PORT).start()
+
     
