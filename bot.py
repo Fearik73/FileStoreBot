@@ -9,7 +9,7 @@ from plugins.restart import RESTART_FILE, notify_restart
 
 
 class Bot(Client):
-    def __init__(self, session, workers, db, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash):
+    def __init__(self, session, workers, db, token, admins, messages, db_uri, db_name, api_id, api_hash):
         super().__init__(
             name=session,
             api_hash=api_hash,
@@ -27,7 +27,7 @@ class Bot(Client):
         self.fsub_dict = {}
         self.admins = [ADMIN_ID]
         self.messages = messages
-        self.auto_del = auto_del
+        self.auto_del = 300
         self.protect = True
         self.mongodb = MongoDB(db_uri, db_name)
         self.req_channels = []
@@ -39,6 +39,11 @@ class Bot(Client):
         usr_bot_me = await self.get_me()
         self.uptime = datetime.now()
         
+        try:
+            await self.mongodb.migrate_legacy()
+        except Exception as e:
+            self.LOGGER(__name__, self.name).warning(f"Legacy data migration failed: {e}")
+
         # Load dynamically added fsub channels from database
         try:
             db_fsub_channels = await self.mongodb.get_fsub_channels()
@@ -68,9 +73,10 @@ class Bot(Client):
             self.LOGGER(__name__, self.name).warning(f"Error loading link/fake fsub: {e}")
         
         try:
-            self.protect = await self.mongodb.get_protect()
+            self.protect = await self.mongodb.get_setting("protect", True)
+            self.auto_del = await self.mongodb.get_setting("auto_del", 300)
         except Exception as e:
-            self.LOGGER(__name__, self.name).warning(f"Error loading protect setting: {e}")
+            self.LOGGER(__name__, self.name).warning(f"Error loading bot settings: {e}")
 
         # Load shortner settings from database
         try:
@@ -112,4 +118,4 @@ class Bot(Client):
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__, self.name).info("Bot stopped.")
-        
+            
