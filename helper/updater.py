@@ -3,6 +3,8 @@ import os
 import shutil
 import sys
 
+from config import UPSTREAM_BRANCH, UPSTREAM_REPO
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -10,7 +12,7 @@ async def _run(*cmd, timeout=300):
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         cwd=ROOT,
-        env={**os.environ, "PYTHON": sys.executable},
+        env={**os.environ, "PYTHON": sys.executable, "UPSTREAM_REPO": UPSTREAM_REPO, "UPSTREAM_BRANCH": UPSTREAM_BRANCH},
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
@@ -50,4 +52,4 @@ async def update_from_upstream():
         if line.startswith(("⚠️", "✅ requirements"))
     )
     return "updated", f"{old or 'none'} → {new}{changes}{notes}"
-  
+
