@@ -6,13 +6,13 @@ import os
 import sys
 import time
 from datetime import datetime
-from config import LOGGER, PORT, OWNER_ID, SHORT_URL, SHORT_API, SHORT_TUT
+from config import LOGGER, PORT, ADMIN_ID, SHORT_URL, SHORT_API, SHORT_TUT
 from helper import MongoDB
 from plugins.restart import RESTART_FILE, notify_restart
 
 
 class Bot(Client):
-    def __init__(self, session, workers, db, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash, protect):
+    def __init__(self, session, workers, db, token, admins, messages, auto_del, db_uri, db_name, api_id, api_hash):
         super().__init__(
             name=session,
             api_hash=api_hash,
@@ -26,12 +26,12 @@ class Bot(Client):
         self.LOGGER = LOGGER
         self.name = session
         self.db = db
-        self.owner = OWNER_ID
+        self.owner = ADMIN_ID
         self.fsub_dict = {}
-        self.admins = admins + [OWNER_ID] if OWNER_ID not in admins else admins
+        self.admins = [ADMIN_ID]
         self.messages = messages
         self.auto_del = auto_del
-        self.protect = protect
+        self.protect = True
         self.mongodb = MongoDB(db_uri, db_name)
         self.req_channels = []
         self.flink_dict = {}
@@ -70,6 +70,11 @@ class Bot(Client):
         except Exception as e:
             self.LOGGER(__name__, self.name).warning(f"Error loading link/fake fsub: {e}")
         
+        try:
+            self.protect = await self.mongodb.get_protect()
+        except Exception as e:
+            self.LOGGER(__name__, self.name).warning(f"Error loading protect setting: {e}")
+
         # Load shortner settings from database
         try:
             shortner_settings = await self.mongodb.get_shortner_settings()
@@ -103,7 +108,7 @@ class Bot(Client):
             await notify_restart(self)
         else:
             try:
-                restart_message = "<b>›› ʜᴇʏ sᴇɴᴘᴀɪ!!\n ɪ'ᴍ ᴀʟɪᴠᴇ ɴᴏᴡ 🍃...</b>"
+                restart_message = "<b>♻️ Bot Restarted Successfully</b>"
                 await self.send_message(chat_id=self.owner, text=restart_message)
             except Exception as e:
                 self.LOGGER(__name__, self.name).warning(f"Failed to send restart notification to owner: {e}")
