@@ -1,8 +1,7 @@
 from pyrogram import Client
 import os
-import sys
 import time
-from config import LOGGER, ADMIN_ID, SHORT_URL, SHORT_API, SHORT_TUT
+from config import LOGGER, ADMIN_ID, ADMIN_IDS, SHORT_URL, SHORT_API, SHORT_TUT
 from helper import MongoDB
 from plugins.restart import RESTART_FILE, notify_restart
 
@@ -24,7 +23,7 @@ class Bot(Client):
         self.db = db
         self.owner = ADMIN_ID
         self.fsub_dict = {}
-        self.admins = [ADMIN_ID]
+        self.admins = list(ADMIN_IDS)
         self.messages = messages
         self.auto_del = 0
         self.shortner_enabled = False
@@ -53,6 +52,13 @@ class Bot(Client):
                     name = chat.title
                     # Update name in case it changed
                     channel_data[0] = name
+                    if channel_data[3] == 0:
+                        try:
+                            new_link = await self.create_chat_invite_link(channel_id, creates_join_request=channel_data[2])
+                            channel_data[1] = new_link.invite_link
+                            await self.mongodb.add_fsub_channel(channel_id, channel_data)
+                        except Exception as e:
+                            self.LOGGER(__name__, self.name).warning(f"Could not refresh invite link for {channel_id}: {e}")
                     self.fsub_dict[channel_id] = channel_data
                     if channel_data[2]:  # if request is True
                         self.req_channels.append(channel_id)
@@ -92,15 +98,6 @@ class Bot(Client):
             self.tutorial_link = SHORT_TUT
             self.shortner_enabled = False
         
-        try:
-            db_channel = await self.get_chat(self.db)
-            test = await self.send_message(chat_id = db_channel.id, text = "Testing Message by @ProYato")
-            await test.delete()
-        except Exception as e:
-            self.LOGGER(__name__, self.name).warning(e)
-            self.LOGGER(__name__, self.name).warning(f"Make Sure bot is Admin in DB Channel, and Double check the database channel Value, Current Value {self.db}")
-            self.LOGGER(__name__, self.name).info("\nBot Stopped. Join https://t.me/animes_cruise for support")
-            sys.exit()
         self.LOGGER(__name__, self.name).info("Bot Started!!")
         
         self.username = usr_bot_me.username
@@ -119,4 +116,5 @@ class Bot(Client):
         self.LOGGER(__name__, self.name).info("Bot stopped.")
 
 
-            
+
+        
