@@ -1,7 +1,7 @@
 import html
 import time
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, Message
+from pyrogram.types import Message
 from helper.helper_func import is_bot_admin, get_readable_time
 
 #===============================================================#
@@ -198,5 +198,6 @@ async def status_command(client: Client, message: Message):
         ]
         text += "\n\n<b>⧉ <u>ʟɪɴᴋ ꜰ-ꜱᴜʙ</u>:</b>\n\n<blockquote>" + "\n\n".join(links) + "</blockquote>"
     await sent.edit(text, disable_web_page_preview=True)
+
 
     
