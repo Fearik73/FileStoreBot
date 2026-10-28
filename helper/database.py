@@ -1,223 +1,208 @@
-import asyncio
-import logging
-import time
+import motor.motor_asyncio
+from datetime import datetime
+
+from config import FSUB_COLLECTION, REQUEST_COLLECTION, SETTINGS_COLLECTION, USERS_COLLECTION
+
+USER_FILTER = {"_id": {"$type": ["int", "long"], "$ne": 1}}
+
+
+class MongoDB:
+    _instances = {}
+
+    def __new__(cls, uri: str, db_name: str):
+        if (uri, db_name) not in cls._instances:
+            instance = super().__new__(cls)
+            instance.client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+            instance.db = instance.client[db_name]
+            instance.user_data = instance.db[USERS_COLLECTION]
+            instance.fsub_data = instance.db[FSUB_COLLECTION]
+            instance.settings_data = instance.db[SETTINGS_COLLECTION]
+            instance.channel_data = instance.db["channels"]
+            instance.fsub_status = instance.db['fsub_status']
+            instance.request_sub = instance.db[REQUEST_COLLECTION]
+            instance.flinks = instance.db['flinks']
+            instance.flink_seen = instance.db['flink_seen']
+            cls._instances[(uri, db_name)] = instance
+        return cls._instances[(uri, db_name)]
+
+    async def migrate_legacy(self):
+        moves = [("fsub_channels", self.fsub_data), ("fake_fsub", self.fsub_data), ("shortner_settings", self.settings_data)]
+        for doc_id, target in moves:
+            if target.name == self.user_data.name:
+                continue
+            doc = await self.user_data.find_one({"_id": doc_id})
+            if doc:
+                if not await target.find_one({"_id": doc_id}):
+                    await target.insert_one(doc)
+                await self.user_data.delete_one({"_id": doc_id})
+        if self.fsub_data.name != self.user_data.name:
+            await self.user_data.delete_one({"_id": 1})
+
+    async def set_channels(self, channels: list[int]):
+        await self.fsub_data.update_one(
+            {"_id": "req_channels"},
+            {"$set": {"channels": channels}},
+            upsert=True
+        )
+
+    async def add_channel_user(self, channel_id: int, user_id: int):
+        await self.channel_data.update_one(
+            {"_id": channel_id},
+            {"$addToSet": {"users": user_id}},
+            upsert=True
+        )
+
+    async def remove_channel_user(self, channel_id: int, user_id: int):
+        await self.channel_data.update_one(
+            {"_id": channel_id},
+            {"$pull": {"users": user_id}}
+        )
+
+    # USER FUNCTIONS
+
+    async def present_user(self, user_id: int) -> bool:
+        found = await self.user_data.find_one({'_id': user_id})
+        return bool(found)
+
+    async def add_user(self, user_id: int):
+        await self.user_data.insert_one({'_id': user_id})
+
+    async def full_userbase(self) -> list[int]:
+        cursor = self.user_data.find(USER_FILTER).sort("_id", 1)
+        return [doc['_id'] async for doc in cursor]
+
+    async def full_userbase_range(self, start: int, count: int) -> list[int]:
+        cursor = self.user_data.find(USER_FILTER).sort("_id", 1).skip(start - 1).limit(count)
+        return [doc['_id'] async for doc in cursor]
+
+    async def total_users(self) -> int:
+        return await self.user_data.count_documents(USER_FILTER)
+
+    # FSUB CHANNELS FUNCTIONS
+
+    async def set_fsub_channels(self, fsub_data: dict):
+        await self.fsub_data.update_one(
+            {"_id": "fsub_channels"},
+            {"$set": {"channels": fsub_data}},
+            upsert=True
+        )
+
+    async def get_fsub_channels(self) -> dict:
+        data = await self.fsub_data.find_one({"_id": "fsub_channels"})
+        return data.get("channels", {}) if data else {}
+
+    async def add_fsub_channel(self, channel_id: int, channel_data: list):
+        current_data = await self.get_fsub_channels()
+        current_data[str(channel_id)] = channel_data
+        await self.set_fsub_channels(current_data)
+
+    async def remove_fsub_channel(self, channel_id: int):
+        current_data = await self.get_fsub_channels()
+        current_data.pop(str(channel_id), None)
+        await self.set_fsub_channels(current_data)
+
+    async def get_fake_channels(self) -> list[int]:
+        data = await self.fsub_data.find_one({"_id": "fake_fsub"})
+        return data.get("channels", []) if data else []
+
+    async def set_fake_channels(self, channels: list[int]):
+        await self.fsub_data.update_one(
+            {"_id": "fake_fsub"},
+            {"$set": {"channels": channels}},
+            upsert=True
+        )
 
-from pymongo import MongoClient, ReturnDocument
+    # LINK FSUB FUNCTIONS
 
-from config import (
-    MONGO_URI, MONGO_DB_NAME, SHORT_URL, SHORT_API, SHORT_TUT,
-    USERS_COLLECTION, FSUB_COLLECTION, REQUEST_COLLECTION, SETTINGS_COLLECTION,
-)
+    async def get_all_flinks(self) -> dict:
+        return {doc["_id"]: {k: v for k, v in doc.items() if k != "_id"} async for doc in self.flinks.find()}
 
-logger = logging.getLogger(__name__)
+    async def add_flink(self, lid: str, data: dict):
+        await self.flinks.update_one({"_id": lid}, {"$set": data}, upsert=True)
 
-client = MongoClient(MONGO_URI)
-db = client[MONGO_DB_NAME]
-users = db[USERS_COLLECTION]
-fsub_channels = db[FSUB_COLLECTION]
+    async def remove_flink(self, lid: str):
+        await self.flinks.delete_one({"_id": lid})
+        await self.flink_seen.delete_many({"lid": lid})
 
-try:
-    client.admin.command("ping")
-    logger.info("Connected to MongoDB db=%s", MONGO_DB_NAME)
-except Exception:
-    logger.exception("Could not reach MongoDB — check MONGO_URI/network access")
+    async def has_flink_seen(self, lid: str, user_id: int) -> bool:
+        return await self.flink_seen.find_one({"lid": lid, "user_id": user_id}) is not None
 
+    async def mark_flink_seen(self, lid: str, user_id: int):
+        await self.flink_seen.update_one({"lid": lid, "user_id": user_id}, {"$set": {"lid": lid, "user_id": user_id}}, upsert=True)
 
-def _next_uid_sync() -> int:
-    key = {"_id": "uid_counter"}
-    if not bot_settings.find_one(key, {"_id": 1}):
-        top = users.find_one({"uid": {"$type": "number"}}, {"uid": 1}, sort=[("uid", -1)])
-        bot_settings.update_one(key, {"$setOnInsert": {"seq": top["uid"] if top else 0}}, upsert=True)
-    doc = bot_settings.find_one_and_update(key, {"$inc": {"seq": 1}}, return_document=ReturnDocument.AFTER)
-    return doc["seq"]
+    # SHORTNER SETTINGS FUNCTIONS
 
+    async def set_shortner_settings(self, shortner_data: dict):
+        await self.settings_data.update_one(
+            {"_id": "shortner_settings"},
+            {"$set": {"settings": shortner_data}},
+            upsert=True
+        )
 
-def _add_user_sync(user_id: int, username: str = None, first_name: str = None, last_name: str = None):
-    if users.find_one({"_id": user_id}, {"_id": 1}):
-        return
-    users.update_one(
-        {"_id": user_id},
-        {"$setOnInsert": {
-            "username": username,
-            "name": f"{first_name} {last_name}",
-            "uid": _next_uid_sync(),
-        }},
-        upsert=True,
-    )
+    async def get_shortner_settings(self) -> dict:
+        data = await self.settings_data.find_one({"_id": "shortner_settings"})
+        return data.get("settings", {}) if data else {}
 
+    async def update_shortner_setting(self, key: str, value: str):
+        current_data = await self.get_shortner_settings()
+        current_data[key] = value
+        await self.set_shortner_settings(current_data)
 
-def _full_userbase_sync() -> list:
-    return [doc["_id"] for doc in users.find()]
+    async def set_shortner_status(self, enabled: bool):
+        await self.update_shortner_setting('enabled', enabled)
 
+    # BOT SETTINGS FUNCTIONS
 
-def _userbase_range_sync(start: int, count: int) -> list:
-    cursor = users.find({}, {"_id": 1}).skip(start - 1).limit(count)
-    return [doc["_id"] for doc in cursor]
+    async def get_setting(self, key: str, default):
+        data = await self.settings_data.find_one({"_id": "bot_settings"})
+        return data.get(key, default) if data else default
 
+    async def set_setting(self, key: str, value):
+        await self.settings_data.update_one(
+            {"_id": "bot_settings"},
+            {"$set": {key: value}},
+            upsert=True
+        )
 
-def _total_users_sync() -> int:
-    return users.count_documents({})
+    # FSUB STATUS FUNCTIONS
 
+    async def update_fsub_status(self, user_id: int, channel_id: int, status: str):
+        await self.fsub_status.update_one(
+            {"user_id": user_id, "channel_id": channel_id},
+            {"$set": {"status": status, "last_updated": datetime.now()}},
+            upsert=True
+        )
 
-async def add_user(user_id: int, username: str = None, first_name: str = None, last_name: str = None):
-    await asyncio.to_thread(_add_user_sync, user_id, username, first_name, last_name)
+    # JOIN REQUEST FUNCTIONS
 
+    async def add_join_request(self, user_id: int, channel_id: int):
+        await self.request_sub.update_one(
+            {"user_id": user_id, "channel_id": channel_id},
+            {"$set": {
+                "status": "pending",
+                "submitted_at": datetime.now(),
+                "last_updated": datetime.now()
+            }},
+            upsert=True
+        )
 
-async def full_userbase() -> list:
-    return await asyncio.to_thread(_full_userbase_sync)
+    async def update_join_request_status(self, user_id: int, channel_id: int, status: str):
+        await self.request_sub.update_one(
+            {"user_id": user_id, "channel_id": channel_id},
+            {"$set": {"status": status, "last_updated": datetime.now()}}
+        )
 
+    async def get_join_request_status(self, user_id: int, channel_id: int) -> str:
+        doc = await self.request_sub.find_one({"user_id": user_id, "channel_id": channel_id})
+        return doc.get("status") if doc else None
 
-async def full_userbase_range(start: int, count: int) -> list:
-    return await asyncio.to_thread(_userbase_range_sync, start, count)
+    async def has_submitted_join_request(self, user_id: int, channel_id: int) -> bool:
+        doc = await self.request_sub.find_one({"user_id": user_id, "channel_id": channel_id})
+        return doc is not None
 
+    async def remove_join_request(self, user_id: int, channel_id: int):
+        await self.request_sub.delete_one({"user_id": user_id, "channel_id": channel_id})
 
-async def total_users() -> int:
-    return await asyncio.to_thread(_total_users_sync)
 
 
-def _add_fsub_channel_sync(channel_id: int, data: dict):
-    fsub_channels.update_one({"_id": channel_id}, {"$set": data}, upsert=True)
-
-
-def _get_all_fsub_channels_sync() -> dict:
-    return {doc["_id"]: doc for doc in fsub_channels.find({"type": {"$ne": "link"}})}
-
-
-async def add_fsub_channel(channel_id: int, data: dict):
-    await asyncio.to_thread(_add_fsub_channel_sync, channel_id, data)
-
-
-async def get_all_fsub_channels() -> dict:
-    return await asyncio.to_thread(_get_all_fsub_channels_sync)
-
-
-def _remove_fsub_channel_sync(channel_id: int):
-    fsub_channels.delete_one({"_id": channel_id})
-
-
-async def remove_fsub_channel(channel_id: int):
-    await asyncio.to_thread(_remove_fsub_channel_sync, channel_id)
-
-
-
-join_requests = db[REQUEST_COLLECTION]
-
-
-def _add_join_request_sync(channel_id: int, user_id: int):
-    join_requests.update_one(
-        {"_id": f"{channel_id}:{user_id}"},
-        {"$set": {
-            "channel_id": channel_id,
-            "user_id": user_id,
-            "status": "pending",
-            "submitted_at": time.time(),
-        }},
-        upsert=True,
-    )
-
-
-def _get_join_request_status_sync(channel_id: int, user_id: int):
-    doc = join_requests.find_one({"_id": f"{channel_id}:{user_id}"})
-    if not doc:
-        return None
-    return doc.get("status", "pending")
-
-
-def _update_join_request_status_sync(channel_id: int, user_id: int, status: str, only_if: str = None):
-    query = {"_id": f"{channel_id}:{user_id}"}
-    if only_if:
-        query["status"] = only_if
-    join_requests.update_one(query, {"$set": {"status": status}})
-
-
-def _remove_join_request_sync(channel_id: int, user_id: int):
-    join_requests.delete_one({"_id": f"{channel_id}:{user_id}"})
-
-
-async def add_join_request(channel_id: int, user_id: int):
-    await asyncio.to_thread(_add_join_request_sync, channel_id, user_id)
-
-
-async def get_join_request_status(channel_id: int, user_id: int):
-    return await asyncio.to_thread(_get_join_request_status_sync, channel_id, user_id)
-
-
-async def update_join_request_status(channel_id: int, user_id: int, status: str, only_if: str = None):
-    await asyncio.to_thread(_update_join_request_status_sync, channel_id, user_id, status, only_if)
-
-
-async def remove_join_request(channel_id: int, user_id: int):
-    await asyncio.to_thread(_remove_join_request_sync, channel_id, user_id)
-
-
-bot_settings = db[SETTINGS_COLLECTION]
-
-
-def _get_settings_sync() -> dict:
-    doc = bot_settings.find_one({"_id": "settings"}) or {}
-    return {
-        "protect_content": doc.get("protect_content", False),
-        "auto_delete": doc.get("auto_delete", 0),
-        "shortner_enabled": doc.get("shortner_enabled", False),
-        "short_url": doc.get("short_url", SHORT_URL),
-        "short_api": doc.get("short_api", SHORT_API),
-        "tutorial_link": doc.get("tutorial_link", SHORT_TUT),
-    }
-
-
-def _update_settings_sync(data: dict):
-    bot_settings.update_one({"_id": "settings"}, {"$set": data}, upsert=True)
-
-
-async def get_settings() -> dict:
-    return await asyncio.to_thread(_get_settings_sync)
-
-
-async def update_settings(data: dict):
-    await asyncio.to_thread(_update_settings_sync, data)
-
-
-def _get_all_flinks_sync() -> dict:
-    return {doc["_id"]: doc for doc in fsub_channels.find({"type": "link"}).sort("added_at", 1)}
-
-
-def _add_flink_sync(link_id: str, data: dict):
-    fsub_channels.update_one({"_id": link_id}, {"$set": data}, upsert=True)
-
-
-def _remove_flink_sync(link_id: str):
-    fsub_channels.delete_one({"_id": link_id})
-    join_requests.delete_many({"channel_id": link_id})
-
-
-def _has_flink_seen_sync(link_id: str, user_id: int) -> bool:
-    return join_requests.find_one({"_id": f"{link_id}:{user_id}"}) is not None
-
-
-def _mark_flink_seen_sync(link_id: str, user_id: int):
-    join_requests.update_one(
-        {"_id": f"{link_id}:{user_id}"},
-        {"$set": {"channel_id": link_id, "user_id": user_id}},
-        upsert=True,
-    )
-
-
-async def get_all_flinks() -> dict:
-    return await asyncio.to_thread(_get_all_flinks_sync)
-
-
-async def add_flink(link_id: str, data: dict):
-    await asyncio.to_thread(_add_flink_sync, link_id, data)
-
-
-async def remove_flink(link_id: str):
-    await asyncio.to_thread(_remove_flink_sync, link_id)
-
-
-async def has_flink_seen(link_id: str, user_id: int) -> bool:
-    return await asyncio.to_thread(_has_flink_seen_sync, link_id, user_id)
-
-
-async def mark_flink_seen(link_id: str, user_id: int):
-    await asyncio.to_thread(_mark_flink_seen_sync, link_id, user_id)
-
+             
