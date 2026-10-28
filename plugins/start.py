@@ -21,8 +21,7 @@ async def start_command(client: Client, message: Message):
             client.LOGGER(__name__, client.name).warning(f"Error adding a user:\n{e}")
 
     if len(message.command) > 1:
-        original_payload = message.command[1]
-        payload = original_payload
+        payload = message.command[1]
 
         is_short_link = False
         if payload.startswith("sh_"):
@@ -86,12 +85,7 @@ async def start_command(client: Client, message: Message):
 
         yugen_msgs = []
         for msg in messages:
-            caption = (
-                client.messages.get('CAPTION', '').format(
-                    previouscaption=msg.caption.html if msg.caption else msg.document.file_name
-                ) if bool(client.messages.get('CAPTION', '')) and bool(msg.document)
-                else ("" if not msg.caption else msg.caption.html)
-            )
+            caption = "" if not msg.caption else msg.caption.html
             reply_markup = msg.reply_markup
 
             try:
@@ -116,10 +110,8 @@ async def start_command(client: Client, message: Message):
 
         if yugen_msgs and client.auto_del > 0:
             asyncio.create_task(batch_auto_del_notification(
-                bot_username=client.username,
                 messages=yugen_msgs,
                 delay_time=client.auto_del,
-                transfer_link=original_payload,
                 chat_id=user_id,
                 client=client
             ))
@@ -152,6 +144,7 @@ async def start_command(client: Client, message: Message):
             message_effect_id=MESSAGE_EFFECT_ID,
             reply_markup=reply_markup
     )
+
 
 
             
