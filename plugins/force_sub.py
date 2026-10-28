@@ -71,6 +71,26 @@ async def add_flink(client, link, mode="always"):
     return lid
 
 
+def link_added_text(lid, mode, link):
+    return (
+        "<b>✅ ʟɪɴᴋ ꜰ-ꜱᴜʙ ᴀᴅᴅᴇᴅ</b>\n\n"
+        f"<b>▸ ɪᴅ:</b> <code>{lid}</code>\n"
+        f"<b>▸ ᴍᴏᴅᴇ:</b> {mode.capitalize()}\n"
+        f"<b>▸ ʟɪɴᴋ:</b> <code>{html.escape(link, quote=False)}</code>"
+    )
+
+
+def channel_added_text(name, channel_id, request, timer, fake):
+    return (
+        "<b>✅ ꜰᴏʀᴄᴇ-ꜱᴜʙ ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ</b>\n\n"
+        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(name)}\n"
+        f"<b>ɪᴅ:</b> <code>{channel_id}</code>\n"
+        f"<b>ᴍᴏᴅᴇ:</b> {'Request' if request else 'Direct'}\n"
+        f"<b>ᴇxᴘɪʀʏ:</b> {f'{timer}m' if timer > 0 else 'Never'}"
+        + ("\n\n<b>❗ᴀᴅᴅᴇᴅ ᴛʜɪꜱ ᴄʜᴀɴɴᴇʟ ɪɴᴛᴏ ꜰᴀᴋᴇ ꜰ-ꜱᴜʙ ʟɪꜱᴛ</b>" if fake else "")
+    )
+
+
 def parse_bool(value):
     if value.lower() in ('true', 'on', 'yes'):
         return True
@@ -91,7 +111,7 @@ async def fsub_command(client: Client, message: Message):
     try:
         if args[0].lower().startswith(("http://", "https://")):
             lid = await add_flink(client, args[0], args[1].lower())
-            return await status_msg.edit(f"<b>✅ Link F-Sub added</b>\n\n<b>▸ ID:</b> <code>{lid}</code>")
+            return await status_msg.edit(link_added_text(lid, args[1].lower(), args[0]), disable_web_page_preview=True)
         fake = args[-1].lower() == 'x'
         if fake:
             args = args[:-1]
@@ -102,7 +122,7 @@ async def fsub_command(client: Client, message: Message):
         if not timer.isdigit():
             raise Exception("Timer must be a non-negative integer")
         name = await register_fsub(client, channel_id, parse_bool(args[1]), int(timer), fake)
-        await status_msg.edit(f"<b>✅ Force-Sub channel added</b>\n\n<b>Channel:</b> {html.escape(name)}\n<b>ID:</b> <code>{channel_id}</code>" + ("\n\n<b>❗Added into fake f-sub list</b>" if fake else ""))
+        await status_msg.edit(channel_added_text(name, channel_id, parse_bool(args[1]), int(timer), fake))
     except Exception as e:
         await status_msg.edit(f"<b>Error:</b> <code>{html.escape(str(e))}</code>")
 
@@ -115,8 +135,9 @@ async def ffsub_command(client: Client, message: Message):
     if not args or len(args) > 2:
         return
     try:
-        lid = await add_flink(client, args[0], args[1].lower() if len(args) == 2 else "always")
-        await message.reply(f"<b>✅ Link F-Sub added</b>\n\n<b>▸ ID:</b> <code>{lid}</code>")
+        mode = args[1].lower() if len(args) == 2 else "always"
+        lid = await add_flink(client, args[0], mode)
+        await message.reply(link_added_text(lid, mode, args[0]), disable_web_page_preview=True)
     except Exception as e:
         await message.reply(f"<b>Error:</b> <code>{html.escape(str(e))}</code>")
 
@@ -177,4 +198,5 @@ async def status_command(client: Client, message: Message):
         ]
         text += "\n\n<b>⧉ <u>ʟɪɴᴋ ꜰ-ꜱᴜʙ</u>:</b>\n\n<blockquote>" + "\n\n".join(links) + "</blockquote>"
     await sent.edit(text, disable_web_page_preview=True)
+
     
