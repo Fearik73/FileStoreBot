@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
@@ -33,7 +34,8 @@ API_ID = int(_required("API_ID"))
 API_HASH = _required("API_HASH")
 TOKEN = _required("TOKEN")
 SESSION = _required("SESSION")
-ADMIN_ID = int(_env("ADMIN_ID", "7375326036"))
+ADMIN_IDS = [int(i) for i in re.split(r"[,\s]+", _env("ADMIN_IDS", _env("ADMIN_ID", "7375326036"))) if i]
+ADMIN_ID = ADMIN_IDS[0]
 DB_CHANNEL = int(_required("DB_CHANNEL"))
 WORKERS = int(_env("WORKERS", "200"))
 LOG_FILE_NAME = _env("LOG_FILE_NAME", "bot.log")
