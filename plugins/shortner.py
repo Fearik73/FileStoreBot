@@ -20,7 +20,7 @@ def _short_sync(api_url):
 
 
 async def get_short(url, client):
-    if not getattr(client, 'shortner_enabled', True):
+    if not getattr(client, 'shortner_enabled', False):
         return url
 
     if url in shortened_urls_cache:
@@ -50,7 +50,7 @@ DENY = '❌ ᴏɴʟʏ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ᴜꜱᴇ ᴛʜɪꜱ!'
 
 
 def build_shortner_panel(client):
-    enabled = getattr(client, 'shortner_enabled', True)
+    enabled = getattr(client, 'shortner_enabled', False)
     short_url = getattr(client, 'short_url', SHORT_URL) or "Not set"
     short_api = getattr(client, 'short_api', SHORT_API) or "Not set"
     tutorial_link = getattr(client, 'tutorial_link', "") or "Not set"
@@ -96,7 +96,7 @@ async def toggle_shortner(client: Client, query: CallbackQuery):
     if query.from_user.id not in client.admins:
         return await query.answer(DENY, show_alert=True)
     from plugins.settings import edit_msg
-    value = not getattr(client, 'shortner_enabled', True)
+    value = not getattr(client, 'shortner_enabled', False)
     client.shortner_enabled = value
     await client.mongodb.set_shortner_status(value)
     text, markup = build_shortner_panel(client)
@@ -198,3 +198,4 @@ async def test_shortner(client: Client, query: CallbackQuery):
     await edit_msg(query.message, text, BACK)
 
                                   
+
