@@ -13,12 +13,10 @@ import asyncio
 async def start_command(client: Client, message: Message):
     user_id = message.from_user.id
 
-    present = await client.mongodb.present_user(user_id)
-    if not present:
-        try:
-            await client.mongodb.add_user(user_id)
-        except Exception as e:
-            client.LOGGER(__name__, client.name).warning(f"Error adding a user:\n{e}")
+    try:
+        await client.mongodb.add_user(message.from_user)
+    except Exception as e:
+        client.LOGGER(__name__, client.name).warning(f"Error adding a user:\n{e}")
 
     if len(message.command) > 1:
         payload = message.command[1]
@@ -144,6 +142,7 @@ async def start_command(client: Client, message: Message):
             message_effect_id=MESSAGE_EFFECT_ID,
             reply_markup=reply_markup
     )
+
 
 
 
