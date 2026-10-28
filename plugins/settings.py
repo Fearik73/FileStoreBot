@@ -6,7 +6,7 @@ from pyrogram.errors.pyromod import ListenerTimeout
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import SETTINGS_IMAGE
-from plugins.force_sub import register_fsub, unregister_fsub, add_flink, find_flink, parse_bool
+from plugins.force_sub import register_fsub, unregister_fsub, add_flink, find_flink, parse_bool, link_added_text, channel_added_text
 
 DENY = '❌ ᴏɴʟʏ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ᴜꜱᴇ ᴛʜɪꜱ!'
 
@@ -38,7 +38,7 @@ def settings_view(client):
 ›› **ʟɪɴᴋ ꜰꜱᴜʙ:** `{len(client.flink_dict)}`
 ›› **ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇʀ:** `{client.auto_del}`
 ›› **ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ:** `{"✓ ᴛʀᴜᴇ" if client.protect else "✗ ꜰᴀʟsᴇ"}`
-›› **sʜᴏʀᴛɴᴇʀ:** `{"✓ ᴏɴ" if getattr(client, 'shortner_enabled', True) else "✗ ᴏꜰꜰ"}`
+›› **sʜᴏʀᴛɴᴇʀ:** `{"✓ ᴏɴ" if getattr(client, 'shortner_enabled', False) else "✗ ᴏꜰꜰ"}`
 """
     reply_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton('ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟꜱ', 'fsub'), InlineKeyboardButton('ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ', 'auto_del')],
@@ -192,12 +192,7 @@ async def process_fsub_add(client, args):
                 return "<b>Invalid format</b>"
             mode = args[1].lower() if len(args) == 2 else "always"
             lid = await add_flink(client, args[0], mode)
-            return (
-                "<b>✅ ʟɪɴᴋ ꜰ-ꜱᴜʙ ᴀᴅᴅᴇᴅ</b>\n\n"
-                f"<b>▸ ɪᴅ:</b> <code>{lid}</code>\n"
-                f"<b>▸ ᴍᴏᴅᴇ:</b> {mode.capitalize()}\n"
-                f"<b>▸ ʟɪɴᴋ:</b> <code>{html.escape(args[0], quote=False)}</code>"
-            )
+            return link_added_text(lid, mode, args[0])
         fake = args[-1].lower() == "x"
         if fake:
             args = args[:-1]
@@ -217,14 +212,7 @@ async def process_fsub_add(client, args):
         name = await register_fsub(client, channel_id, request, timer, fake)
     except Exception as e:
         return f"<b>Error:</b> <code>{html.escape(str(e))}</code>"
-    return (
-        "<b>✅ ꜰᴏʀᴄᴇ-ꜱᴜʙ ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ</b>\n\n"
-        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(name)}\n"
-        f"<b>ɪᴅ:</b> <code>{channel_id}</code>\n"
-        f"<b>ᴍᴏᴅᴇ:</b> {'Request' if request else 'Direct'}\n"
-        f"<b>ᴇxᴘɪʀʏ:</b> {f'{timer}m' if timer > 0 else 'Never'}\n\n"
-        + ("<b>❗ᴀᴅᴅᴇᴅ ᴛʜɪꜱ ᴄʜᴀɴɴᴇʟ ɪɴᴛᴏ ꜰᴀᴋᴇ ꜰ-ꜱᴜʙ ʟɪꜱᴛ</b>" if fake else "")
-    )
+    return channel_added_text(name, channel_id, request, timer, fake)
 
 
 async def process_fsub_remove(client, raw):
@@ -298,4 +286,5 @@ async def rm_fsub(client, query):
     except ListenerTimeout:
         text = "<b>⚠️ ᴛɪᴍᴇᴅ ᴏᴜᴛ</b>\n\n<i>_ꜱᴇᴀꜱᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜꜱᴇ ɴᴏ ᴅᴀᴛᴀ ʀᴇᴄᴇɪᴠᴇᴅ ꜰʀᴏᴍ ᴜꜱᴇʀ!_</i>"
     await edit_msg(query.message, text, InlineKeyboardMarkup([[InlineKeyboardButton("◂ ʙᴀᴄᴋ", "fsub")]]))
+
     
