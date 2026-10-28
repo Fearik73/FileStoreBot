@@ -199,13 +199,16 @@ async def pin_broadcast_command(client: Client, message: Message):
 async def range_broadcast_command(client: Client, message: Message):
     if message.from_user.id not in client.admins:
         return
+    if not await _require_reply(message):
+        return
     try:
         start, count = int(message.command[1]), int(message.command[2])
+        if start < 1 or count < 1:
+            raise ValueError
     except (IndexError, ValueError):
-        return
-    if start < 1 or count < 1:
-        return
-    if not await _require_reply(message):
+        warn = await message.reply("<b>❗Usage:</b> <code>/brange start count</code>")
+        await asyncio.sleep(8)
+        await warn.delete()
         return
 
     total_db = await client.mongodb.total_users()
@@ -284,4 +287,5 @@ async def user_count(client: Client, message: Message):
         return
     total = await client.mongodb.total_users()
     await message.reply(f"<b>{total} Users are using this bot currently!</b>")
-                               
+
+                
