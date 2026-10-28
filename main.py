@@ -14,7 +14,6 @@ async def main():
             WORKERS,
             DB_CHANNEL,
             TOKEN,
-            [ADMIN_ID],
             MESSAGES,
             DB_URI,
             DB_NAME,
