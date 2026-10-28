@@ -1,9 +1,10 @@
 import asyncio
-from pyrogram import Client
+import time
+from pyrogram import Client, raw
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant, Forbidden, FloodWait
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pyrogram import errors
 
 #===============================================================#
@@ -90,13 +91,56 @@ async def is_bot_admin(client, channel_id):
 
 #===============================================================#
 
-async def check_subscription(client, user_id):
+_LINK_OK_UNTIL = {}
+
+
+async def _link_is_valid(client, channel_id, link, request):
+    try:
+        peer = await client.resolve_peer(channel_id)
+        res = await client.invoke(raw.functions.messages.GetExportedChatInvite(peer=peer, link=link))
+        inv = res.invite
+        if getattr(inv, "revoked", False):
+            return False
+        exp = getattr(inv, "expire_date", None)
+        if exp:
+            exp_ts = exp.timestamp() if hasattr(exp, "timestamp") else exp
+            if exp_ts < time.time() + 30:
+                return False
+        limit = getattr(inv, "usage_limit", None)
+        if limit and (getattr(inv, "usage", 0) or 0) >= limit:
+            return False
+        return bool(getattr(inv, "request_needed", False)) == bool(request)
+    except Exception as e:
+        client.LOGGER(__name__, client.name).warning(f"Could not verify invite link for {channel_id}: {e}")
+        return False
+
+
+async def ensure_valid_link(client, channel_id):
+    data = client.fsub_dict[channel_id]
+    link, request = data[1], data[2]
+    now = time.time()
+    if link and _LINK_OK_UNTIL.get(channel_id, 0) > now:
+        return link
+    if link and await _link_is_valid(client, channel_id, link, request):
+        _LINK_OK_UNTIL[channel_id] = now + 60
+        return link
+    try:
+        new = await client.create_chat_invite_link(channel_id, creates_join_request=request)
+        data[1] = new.invite_link
+        await client.mongodb.add_fsub_channel(channel_id, data)
+        _LINK_OK_UNTIL[channel_id] = now + 60
+        return data[1]
+    except Exception as e:
+        client.LOGGER(__name__, client.name).warning(f"Error refreshing invite link for {channel_id}: {e}")
+        return link
+
+
+async def check_subscription(client, user):
     """Enhanced subscription check with better request channel handling."""
     statuses = {}
+    user_id = user.id
 
-    # Ensure user exists in database
-    if not await client.mongodb.present_user(user_id):
-        await client.mongodb.add_user(user_id)
+    await client.mongodb.add_user(user)
 
     for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
         try:
@@ -184,7 +228,7 @@ def force_sub(func):
     async def wrapper(client: Client, message: Message):
         if not client.fsub_dict and not client.flink_dict:
             return await func(client, message)
-        msg = await message.reply("<b>ᴡᴀɪᴛ ᴀ sᴇᴄᴏɴᴅ.....</b>")
+        msg = await message.reply("<b>Checking Subscription....</b>")
 
         raw_payload = message.command[1] if len(message.command) > 1 else None
         is_retry = False
@@ -200,7 +244,7 @@ def force_sub(func):
         consider_fake = is_file_request and not is_retry
 
         user_id = message.from_user.id
-        statuses = await check_subscription(client, user_id)
+        statuses = await check_subscription(client, message.from_user)
         subscribed = {cid: (status in ACTIVE or status is None) for cid, status in statuses.items()}
 
         real_ok = all(ok for cid, ok in subscribed.items() if cid not in client.fake_fsub)
@@ -233,7 +277,7 @@ def force_sub(func):
             if subscribed.get(channel_id, True):
                 continue
             if timer > 0:
-                expire_time = datetime.now() + timedelta(minutes=timer)
+                expire_time = datetime.now(timezone.utc) + timedelta(minutes=timer)
                 try:
                     invite = await client.create_chat_invite_link(
                         chat_id=channel_id,
@@ -243,6 +287,11 @@ def force_sub(func):
                     channel_link = invite.invite_link
                 except Exception as e:
                     client.LOGGER(__name__, client.name).warning(f"Error creating invite link for {channel_name}: {e}")
+                    channel_link = None
+            else:
+                channel_link = await ensure_valid_link(client, channel_id)
+            if not channel_link:
+                continue
             buttons.append(InlineKeyboardButton(f"Channel {numbers[channel_id]:02d}", url=channel_link))
 
         for lid in pending_links:
@@ -322,4 +371,5 @@ async def batch_auto_del_notification(messages, delay_time, chat_id, client):
     except Exception as e:
         client.LOGGER(__name__, client.name).warning(f"Error updating notification message: {e}")
 
-        
+
+    
