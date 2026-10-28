@@ -33,7 +33,7 @@ async def start_command(client: Client, message: Message):
         if not is_file_link:
             return await message.reply("⚠️ Invalid or expired link.")
 
-        shortner_enabled = getattr(client, 'shortner_enabled', True)
+        shortner_enabled = getattr(client, 'shortner_enabled', False)
 
         if user_id not in client.admins and not is_short_link and shortner_enabled:
             try:
@@ -152,5 +152,6 @@ async def start_command(client: Client, message: Message):
             message_effect_id=MESSAGE_EFFECT_ID,
             reply_markup=reply_markup
     )
+
 
             
