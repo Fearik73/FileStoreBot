@@ -175,11 +175,10 @@ class MongoDB:
 
     # JOIN REQUEST FUNCTIONS
 
-    async def add_join_request(self, user_id: int, channel_id: int, request_id: int = None):
+    async def add_join_request(self, user_id: int, channel_id: int):
         await self.request_sub.update_one(
             {"user_id": user_id, "channel_id": channel_id},
             {"$set": {
-                "request_id": request_id,
                 "status": "pending",
                 "submitted_at": datetime.now(),
                 "last_updated": datetime.now()
@@ -203,5 +202,6 @@ class MongoDB:
 
     async def remove_join_request(self, user_id: int, channel_id: int):
         await self.request_sub.delete_one({"user_id": user_id, "channel_id": channel_id})
+
 
     
