@@ -2,14 +2,13 @@ from pyrogram import Client
 import os
 import sys
 import time
-from datetime import datetime
 from config import LOGGER, ADMIN_ID, SHORT_URL, SHORT_API, SHORT_TUT
 from helper import MongoDB
 from plugins.restart import RESTART_FILE, notify_restart
 
 
 class Bot(Client):
-    def __init__(self, session, workers, db, token, admins, messages, db_uri, db_name, api_id, api_hash):
+    def __init__(self, session, workers, db, token, messages, db_uri, db_name, api_id, api_hash):
         super().__init__(
             name=session,
             api_hash=api_hash,
@@ -38,7 +37,6 @@ class Bot(Client):
     async def start(self):
         await super().start()
         usr_bot_me = await self.get_me()
-        self.uptime = datetime.now()
         
         try:
             await self.mongodb.migrate_legacy()
@@ -112,12 +110,13 @@ class Bot(Client):
             await notify_restart(self)
         else:
             try:
-                restart_message = "<b>›› ʜᴇʏ sᴇɴᴘᴀɪ!!\n ɪ'ᴍ ᴀʟɪᴠᴇ ɴᴏᴡ 🍃...</b>"
+                restart_message = "<b>Bot is running now</b>"
                 await self.send_message(chat_id=self.owner, text=restart_message)
             except Exception as e:
                 self.LOGGER(__name__, self.name).warning(f"Failed to send restart notification to owner: {e}")
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__, self.name).info("Bot stopped.")
+
 
             
