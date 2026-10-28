@@ -2,7 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import ChatJoinRequest, ChatMemberUpdated
 from pyrogram.enums import ChatMemberStatus
 
-@Client.on_chat_join_request(filters.channel)
+@Client.on_chat_join_request(filters.channel | filters.group)
 async def handle_join_request(client, join_request: ChatJoinRequest):
     """Handle join request for fsub channels"""
     user_id = join_request.from_user.id
@@ -25,7 +25,7 @@ async def handle_join_request(client, join_request: ChatJoinRequest):
     except Exception as e:
         client.LOGGER(__name__, client.name).error(f"Join request error: {user_id} in {channel_id}: {e}")
 
-@Client.on_chat_member_updated(filters.channel)
+@Client.on_chat_member_updated(filters.channel | filters.group)
 async def handle_member_update(client, chat_member_updated: ChatMemberUpdated):
     """Handle member status updates for fsub channels"""
     user_id = chat_member_updated.from_user.id
@@ -84,4 +84,4 @@ async def handle_member_update(client, chat_member_updated: ChatMemberUpdated):
         client.LOGGER(__name__, client.name).error(f"Member update error: {user_id} in {channel_id}: {e}")
 
 
-        
+
