@@ -14,8 +14,7 @@ async def handle_join_request(client, join_request: ChatJoinRequest):
         
     try:
         # Ensure user exists in database
-        if not await client.mongodb.present_user(user_id):
-            await client.mongodb.add_user(user_id)
+        await client.mongodb.add_user(join_request.from_user)
         
         # Record join request
         await client.mongodb.add_join_request(user_id, channel_id)
@@ -40,8 +39,7 @@ async def handle_member_update(client, chat_member_updated: ChatMemberUpdated):
     
     try:
         # Ensure user exists
-        if not await client.mongodb.present_user(user_id):
-            await client.mongodb.add_user(user_id)
+        await client.mongodb.add_user(chat_member_updated.from_user)
         
         # Handle status changes properly - Telegram sends None for new_status on leave/ban
         active_statuses = {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
