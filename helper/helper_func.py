@@ -224,6 +224,7 @@ def force_sub(func):
             return await func(client, message)
 
         buttons = []
+        numbers = {key: i for i, key in enumerate([*client.fsub_dict, *client.flink_dict], start=1)}
         channels_message = f"{client.messages.get('FSUB', '')}\n\n"
 
         for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
@@ -242,14 +243,14 @@ def force_sub(func):
                     channel_link = invite.invite_link
                 except Exception as e:
                     client.LOGGER(__name__, client.name).warning(f"Error creating invite link for {channel_name}: {e}")
-            buttons.append(InlineKeyboardButton(f"{channel_name}", url=channel_link))
+            buttons.append(InlineKeyboardButton(f"Channel {numbers[channel_id]:02d}", url=channel_link))
 
         for lid in pending_links:
-            buttons.append(InlineKeyboardButton("• ᴊᴏɪɴ ʟɪɴᴋ •", url=client.flink_dict[lid]["link"]))
+            buttons.append(InlineKeyboardButton(f"Channel {numbers[lid]:02d}", url=client.flink_dict[lid]["link"]))
 
         retry_payload = f"retry_{original_payload}" if original_payload else "retry"
+        buttons.append(InlineKeyboardButton("Try Again", url=f"https://t.me/{client.username}?start={retry_payload}"))
         rows = [buttons[i:i + 2] for i in range(0, len(buttons), 2)]
-        rows.append([InlineKeyboardButton("Try Again", url=f"https://t.me/{client.username}?start={retry_payload}")])
 
         buttons_markup = InlineKeyboardMarkup(rows)
 
@@ -320,4 +321,5 @@ async def batch_auto_del_notification(messages, delay_time, chat_id, client):
         await notification_msg.edit_text("<b><i>💬 The Previous Files Has Been Deleted</i></b>")
     except Exception as e:
         client.LOGGER(__name__, client.name).warning(f"Error updating notification message: {e}")
-                
+
+        
