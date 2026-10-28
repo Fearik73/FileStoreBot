@@ -83,7 +83,7 @@ async def start_command(client: Client, message: Message):
             return await temp_msg.edit("Couldn't find the files in the database.")
         await temp_msg.delete()
 
-        yugen_msgs = []
+        copied_msgs = []
         for msg in messages:
             caption = "" if not msg.caption else msg.caption.html
             reply_markup = msg.reply_markup
@@ -95,7 +95,7 @@ async def start_command(client: Client, message: Message):
                     reply_markup=reply_markup,
                     protect_content=client.protect
                 )
-                yugen_msgs.append(copied_msg)
+                copied_msgs.append(copied_msg)
             except FloodWait as e:
                 await asyncio.sleep(e.value)
                 copied_msg = await msg.copy(
@@ -104,13 +104,13 @@ async def start_command(client: Client, message: Message):
                     reply_markup=reply_markup,
                     protect_content=client.protect
                 )
-                yugen_msgs.append(copied_msg)
+                copied_msgs.append(copied_msg)
             except Exception as e:
                 client.LOGGER(__name__, client.name).warning(f"Failed to send message: {e}")
 
-        if yugen_msgs and client.auto_del > 0:
+        if copied_msgs and client.auto_del > 0:
             asyncio.create_task(batch_auto_del_notification(
-                messages=yugen_msgs,
+                messages=copied_msgs,
                 delay_time=client.auto_del,
                 chat_id=user_id,
                 client=client
@@ -147,4 +147,5 @@ async def start_command(client: Client, message: Message):
 
 
 
-            
+
+        
