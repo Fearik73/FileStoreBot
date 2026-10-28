@@ -27,7 +27,8 @@ class Bot(Client):
         self.fsub_dict = {}
         self.admins = [ADMIN_ID]
         self.messages = messages
-        self.auto_del = 300
+        self.auto_del = 0
+        self.shortner_enabled = False
         self.protect = True
         self.mongodb = MongoDB(db_uri, db_name)
         self.req_channels = []
@@ -74,7 +75,7 @@ class Bot(Client):
         
         try:
             self.protect = await self.mongodb.get_setting("protect", True)
-            self.auto_del = await self.mongodb.get_setting("auto_del", 300)
+            self.auto_del = await self.mongodb.get_setting("auto_del", 0)
         except Exception as e:
             self.LOGGER(__name__, self.name).warning(f"Error loading bot settings: {e}")
 
@@ -84,14 +85,14 @@ class Bot(Client):
             self.short_url = shortner_settings.get('short_url', SHORT_URL)
             self.short_api = shortner_settings.get('short_api', SHORT_API)
             self.tutorial_link = shortner_settings.get('tutorial_link', SHORT_TUT)
-            self.shortner_enabled = shortner_settings.get('enabled', True)
+            self.shortner_enabled = shortner_settings.get('enabled', False)
         except Exception as e:
             self.LOGGER(__name__, self.name).warning(f"Error loading shortner settings: {e}")
             # Set defaults from config if loading fails
             self.short_url = SHORT_URL
             self.short_api = SHORT_API
             self.tutorial_link = SHORT_TUT
-            self.shortner_enabled = True
+            self.shortner_enabled = False
         
         try:
             db_channel = await self.get_chat(self.db)
@@ -118,4 +119,5 @@ class Bot(Client):
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__, self.name).info("Bot stopped.")
+
             
