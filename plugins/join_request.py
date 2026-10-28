@@ -18,7 +18,7 @@ async def handle_join_request(client, join_request: ChatJoinRequest):
             await client.mongodb.add_user(user_id)
         
         # Record join request
-        await client.mongodb.add_join_request(user_id, channel_id, getattr(join_request, 'id', None))
+        await client.mongodb.add_join_request(user_id, channel_id)
         await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
         await client.mongodb.add_channel_user(channel_id, user_id)
         
