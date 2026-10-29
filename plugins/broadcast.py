@@ -3,7 +3,7 @@ import logging
 import time
 
 from pyrogram import Client, filters
-from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated, ChannelInvalid, PeerIdInvalid
+from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated, ChannelInvalid, PeerIdInvalid, ChatWriteForbidden, ChannelPrivate, ChatAdminRequired, UserIsBot
 from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import BROADCAST_EFFECT_ID
@@ -62,10 +62,12 @@ async def _send_one(client: Client, chat_id: int, broadcast_msg: Message, pin: b
             return "blocked"
         except (InputUserDeactivated, ChannelInvalid, PeerIdInvalid):
             return "deleted"
+        except (ChatWriteForbidden, ChannelPrivate, ChatAdminRequired, UserIsBot):
+            return "skip"
         except Exception:
             logger.exception("Failed to broadcast to chat_id=%s", chat_id)
             return "failed"
-        if pin:
+        if pin and sent:
             try:
                 await client.pin_chat_message(chat_id=chat_id, message_id=sent.id, both_sides=True)
             except Exception:
@@ -83,7 +85,10 @@ async def _send_done(client: Client, cmd_msg: Message, text: str):
         )
     except Exception:
         logger.exception("Failed to send completion message with effect")
-        await cmd_msg.reply(text, quote=True)
+        try:
+            await cmd_msg.reply(text, quote=True)
+        except Exception:
+            logger.exception("Failed to send completion message")
 
 
 async def _run_broadcast(client: Client, cmd_msg: Message, status_msg: Message, broadcast_msg: Message, pin: bool = False, user_ids: list = None, range_label: str = None, next_start: str = None, range_start: int = None):
@@ -116,13 +121,24 @@ async def _run_broadcast(client: Client, cmd_msg: Message, status_msg: Message, 
         for chat_id in user_ids:
             if state["cancel"]:
                 break
-            result = await _send_one(client, chat_id, broadcast_msg, pin)
+            if not isinstance(chat_id, int) or chat_id <= 0:
+                unsuccessful += 1
+                done += 1
+                await _update_progress()
+                continue
+            try:
+                result = await _send_one(client, chat_id, broadcast_msg, pin)
+            except Exception:
+                logger.exception("Unexpected broadcast error for chat_id=%s", chat_id)
+                result = "failed"
             if result == "ok":
                 successful += 1
             elif result == "blocked":
                 blocked += 1
             elif result == "deleted":
                 deleted += 1
+            elif result == "skip":
+                unsuccessful += 1
             else:
                 unsuccessful += 1
                 failed.append(chat_id)
@@ -134,7 +150,11 @@ async def _run_broadcast(client: Client, cmd_msg: Message, status_msg: Message, 
             for chat_id in failed:
                 if state["cancel"]:
                     break
-                result = await _send_one(client, chat_id, broadcast_msg, pin)
+                try:
+                    result = await _send_one(client, chat_id, broadcast_msg, pin)
+                except Exception:
+                    logger.exception("Unexpected broadcast retry error for chat_id=%s", chat_id)
+                    result = "failed"
                 if result == "ok":
                     unsuccessful -= 1
                     successful += 1
@@ -278,7 +298,6 @@ async def broadcast_keep_callback(client: Client, query: CallbackQuery):
         await query.message.delete()
     except Exception:
         pass
-    
 
 
 @Client.on_message(filters.private & filters.command("users"))
@@ -287,5 +306,3 @@ async def user_count(client: Client, message: Message):
         return
     total = await client.mongodb.total_users()
     await message.reply(f"<b>{total} Users are using this bot currently!</b>")
-
-                
