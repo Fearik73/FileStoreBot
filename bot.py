@@ -48,7 +48,7 @@ class Bot(Client):
                 channel_id = int(channel_id_str)
                 try:
                     chat = await self.get_chat(channel_id)
-                    name = chat.title
+                    name = chat.title or str(channel_id)
                     # Update name in case it changed
                     channel_data[0] = name
                     if channel_data[3] == 0:
@@ -113,8 +113,4 @@ class Bot(Client):
     async def stop(self, *args):
         await super().stop()
         self.LOGGER(__name__, self.name).info("Bot stopped.")
-
-
-
-
         
