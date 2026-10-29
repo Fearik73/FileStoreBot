@@ -197,7 +197,3 @@ async def test_shortner(client: Client, query: CallbackQuery):
             text = f"<b>❌ Shortner Test Failed</b>\n\n<b>Error:</b> {e}"
     await edit_msg(query.message, text, BACK)
 
-                                  
-
-
-                        
