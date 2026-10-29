@@ -120,10 +120,6 @@ class MongoDB:
 
     # USER FUNCTIONS
 
-    async def present_user(self, user_id: int) -> bool:
-        found = await self.user_data.find_one({'_id': user_id})
-        return bool(found)
-
     async def _next_uid(self) -> int:
         key = {"_id": "uid_counter"}
         if not await self.settings_data.find_one(key, {"_id": 1}):
@@ -139,7 +135,7 @@ class MongoDB:
             {"_id": user.id},
             {"$setOnInsert": {
                 "username": user.username,
-                "name": f"{user.first_name} {user.last_name}",
+                "name": " ".join(filter(None, [user.first_name, user.last_name])),
                 "uid": await self._next_uid(),
             }},
             upsert=True
@@ -285,8 +281,4 @@ class MongoDB:
 
     async def remove_join_request(self, user_id: int, channel_id: int):
         await self.request_sub.delete_one({"user_id": user_id, "channel_id": channel_id, "type": REQ_TYPE})
-
-
-
-
-    
+        
