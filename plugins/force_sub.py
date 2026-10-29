@@ -13,7 +13,7 @@ async def register_fsub(client, channel_id, request, timer, fake=False):
     if not val:
         raise Exception(res)
     chat = await client.get_chat(channel_id)
-    name = chat.title
+    name = chat.title or str(channel_id)
     if timer > 0:
         data = [name, None, request, timer]
     else:
@@ -83,7 +83,7 @@ def link_added_text(lid, mode, link):
 def channel_added_text(name, channel_id, request, timer, fake):
     return (
         "<b>✅ ꜰᴏʀᴄᴇ-ꜱᴜʙ ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ</b>\n\n"
-        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(name)}\n"
+        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(str(name))}\n"
         f"<b>ɪᴅ:</b> <code>{channel_id}</code>\n"
         f"<b>ᴍᴏᴅᴇ:</b> {'Request' if request else 'Direct'}\n"
         f"<b>ᴇxᴘɪʀʏ:</b> {f'{timer}m' if timer > 0 else 'Never'}"
@@ -160,7 +160,7 @@ async def rmf_command(client: Client, message: Message):
         return await message.reply("<b>This channel isn't in the Force-Sub list</b>")
     name = client.fsub_dict[channel_id][0]
     await unregister_fsub(client, channel_id)
-    await message.reply(f"<b>✅ F-Sub removed</b>\n\n<b>Channel:</b> {html.escape(name)}\n<b>ID:</b> <code>{channel_id}</code>")
+    await message.reply(f"<b>✅ F-Sub removed</b>\n\n<b>Channel:</b> {html.escape(str(name))}\n<b>ID:</b> <code>{channel_id}</code>")
 
 
 @Client.on_message(filters.command("status") & filters.private)
@@ -185,7 +185,7 @@ async def status_command(client: Client, message: Message):
         lines = []
         for idx, (channel_id, (name, _, request, timer)) in enumerate(client.fsub_dict.items(), start=1):
             lines.append(
-                f"{idx}. <b>{html.escape(name)}</b> — <code>{channel_id}</code>\n"
+                f"{idx}. <b>{html.escape(str(name))}</b> — <code>{channel_id}</code>\n"
                 f"<b>▸ ᴛʏᴘᴇ:</b> {'Fake' if channel_id in client.fake_fsub else 'Real'}\n"
                 f"<b>▸ ᴍᴏᴅᴇ:</b> {'Request' if request else 'Direct'}\n"
                 f"<b>▸ ᴇxᴘɪʀʏ:</b> {f'{timer}m' if timer > 0 else 'Never'}"
@@ -198,7 +198,4 @@ async def status_command(client: Client, message: Message):
         ]
         text += "\n\n<b>⧉ <u>ʟɪɴᴋ ꜰ-ꜱᴜʙ</u>:</b>\n\n<blockquote>" + "\n\n".join(links) + "</blockquote>"
     await sent.edit(text, disable_web_page_preview=True)
-
-
-
-    
+        
