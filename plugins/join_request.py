@@ -5,6 +5,8 @@ from pyrogram.enums import ChatMemberStatus
 @Client.on_chat_join_request(filters.channel | filters.group)
 async def handle_join_request(client, join_request: ChatJoinRequest):
     """Handle join request for fsub channels"""
+    if not join_request.from_user:
+        return
     user_id = join_request.from_user.id
     channel_id = join_request.chat.id
     
@@ -27,6 +29,8 @@ async def handle_join_request(client, join_request: ChatJoinRequest):
 @Client.on_chat_member_updated(filters.channel | filters.group)
 async def handle_member_update(client, chat_member_updated: ChatMemberUpdated):
     """Handle member status updates for fsub channels"""
+    if not chat_member_updated.from_user:
+        return
     user_id = chat_member_updated.from_user.id
     channel_id = chat_member_updated.chat.id
     
@@ -80,6 +84,4 @@ async def handle_member_update(client, chat_member_updated: ChatMemberUpdated):
             
     except Exception as e:
         client.LOGGER(__name__, client.name).error(f"Member update error: {user_id} in {channel_id}: {e}")
-
-
-
+        
