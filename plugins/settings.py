@@ -13,6 +13,8 @@ DENY = '❌ ᴏɴʟʏ ᴀᴅᴍɪɴꜱ ᴄᴀɴ ᴜꜱᴇ ᴛʜɪꜱ!'
 #===============================================================#
 
 async def edit_msg(message, text, reply_markup=None):
+    if message is None:
+        return None
     try:
         if message.photo:
             return await message.edit_caption(text, reply_markup=reply_markup)
@@ -51,6 +53,8 @@ def settings_view(client):
 async def show_main(client, query):
     msg, reply_markup = settings_view(client)
     m = query.message
+    if m is None:
+        return
     if m.photo:
         try:
             return await m.edit_caption(msg, reply_markup=reply_markup)
@@ -231,7 +235,7 @@ async def process_fsub_remove(client, raw):
     await unregister_fsub(client, channel_id)
     return (
         "<b>✅ ꜰ-ꜱᴜʙ ʀᴇᴍᴏᴠᴇᴅ</b>\n\n"
-        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(name)}\n"
+        f"<b>ᴄʜᴀɴɴᴇʟ:</b> {html.escape(str(name))}\n"
         f"<b>ɪᴅ:</b> <code>{channel_id}</code>"
     )
 
@@ -286,5 +290,4 @@ async def rm_fsub(client, query):
     except ListenerTimeout:
         text = "<b>⚠️ ᴛɪᴍᴇᴅ ᴏᴜᴛ</b>\n\n<i>_ꜱᴇᴀꜱᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ ʙᴇᴄᴀᴜꜱᴇ ɴᴏ ᴅᴀᴛᴀ ʀᴇᴄᴇɪᴠᴇᴅ ꜰʀᴏᴍ ᴜꜱᴇʀ!_</i>"
     await edit_msg(query.message, text, InlineKeyboardMarkup([[InlineKeyboardButton("◂ ʙᴀᴄᴋ", "fsub")]]))
-
     
