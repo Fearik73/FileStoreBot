@@ -40,7 +40,7 @@ async def start_command(client: Client, message: Message):
                 return await message.reply("Couldn't generate short link.")
 
             short_photo = client.messages.get("SHORT_PIC", "")
-            short_caption = client.messages.get("SHORT_MSG", "").format(first=message.from_user.first_name)
+            short_caption = client.messages.get("SHORT_MSG", "").format(first=message.from_user.first_name or "")
             tutorial_link = getattr(client, 'tutorial_link', "https://t.me/How_to_Download_7x/26")
 
             short_markup = InlineKeyboardMarkup([
@@ -93,16 +93,20 @@ async def start_command(client: Client, message: Message):
                     reply_markup=reply_markup,
                     protect_content=client.protect
                 )
-                copied_msgs.append(copied_msg)
+                if copied_msg:
+                    copied_msgs.append(copied_msg)
             except FloodWait as e:
                 await asyncio.sleep(e.value)
-                copied_msg = await msg.copy(
-                    chat_id=user_id,
-                    caption=caption,
-                    reply_markup=reply_markup,
-                    protect_content=client.protect
-                )
-                copied_msgs.append(copied_msg)
+                try:
+                    copied_msg = await msg.copy(
+                        chat_id=user_id,
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        protect_content=client.protect
+                    )
+                    copied_msgs.append(copied_msg)
+                except Exception as e2:
+                    client.LOGGER(__name__, client.name).warning(f"Failed to send message after flood wait: {e2}")
             except Exception as e:
                 client.LOGGER(__name__, client.name).warning(f"Failed to send message: {e}")
 
@@ -120,9 +124,9 @@ async def start_command(client: Client, message: Message):
 
     photo = client.messages.get("START_PHOTO", "")
     start_caption = client.messages.get('START', 'Welcome, {mention}').format(
-        first=message.from_user.first_name,
-        last=message.from_user.last_name,
-        username=None if not message.from_user.username else '@' + message.from_user.username,
+        first=message.from_user.first_name or "",
+        last=message.from_user.last_name or "",
+        username='@' + message.from_user.username if message.from_user.username else "",
         mention=message.from_user.mention,
         id=message.from_user.id
     )
@@ -141,10 +145,5 @@ async def start_command(client: Client, message: Message):
             text=start_caption,
             message_effect_id=MESSAGE_EFFECT_ID,
             reply_markup=reply_markup
-    )
-
-
-
-
-
+        )
         
