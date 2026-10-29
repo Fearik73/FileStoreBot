@@ -37,14 +37,19 @@ async def get_messages(client, message_ids):
     while total_messages != len(message_ids):
         chunk = message_ids[total_messages:total_messages + 200]
         try:
-            msgs = await client.get_messages(client.db, chunk)
-        except FloodWait as e:
-            await asyncio.sleep(e.value)
-            msgs = await client.get_messages(client.db, chunk)
+            try:
+                msgs = await client.get_messages(client.db, chunk)
+            except FloodWait as e:
+                await asyncio.sleep(e.value)
+                msgs = await client.get_messages(client.db, chunk)
         except Exception as e:
             client.LOGGER(__name__, client.name).warning(f"Error getting messages: {e}")
             msgs = []
         total_messages += len(chunk)
+        if msgs is None:
+            continue
+        if not isinstance(msgs, list):
+            msgs = [msgs]
         messages.extend(msg for msg in msgs if msg is not None and not msg.empty)
     return messages
 
@@ -142,7 +147,7 @@ async def check_subscription(client, user):
 
     await client.mongodb.add_user(user)
 
-    for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
+    for channel_id, (channel_name, channel_link, request, timer) in list(client.fsub_dict.items()):
         try:
             # Get actual membership status first
             user = await client.get_chat_member(channel_id, user_id)
@@ -228,6 +233,8 @@ def force_sub(func):
     async def wrapper(client: Client, message: Message):
         if not client.fsub_dict and not client.flink_dict:
             return await func(client, message)
+        if not message.from_user:
+            return
         msg = await message.reply("<b>Checking Subscription....</b>")
 
         raw_payload = message.command[1] if len(message.command) > 1 else None
@@ -271,7 +278,7 @@ def force_sub(func):
         numbers = {key: i for i, key in enumerate([*client.fsub_dict, *client.flink_dict], start=1)}
         channels_message = f"{client.messages.get('FSUB', '')}\n\n"
 
-        for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
+        for channel_id, (channel_name, channel_link, request, timer) in list(client.fsub_dict.items()):
             if channel_id in client.fake_fsub and not consider_fake:
                 continue
             if subscribed.get(channel_id, True):
@@ -372,4 +379,5 @@ async def batch_auto_del_notification(messages, delay_time, chat_id, client):
         client.LOGGER(__name__, client.name).warning(f"Error updating notification message: {e}")
 
 
-    
+
+                      
