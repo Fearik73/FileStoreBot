@@ -1,6 +1,5 @@
 import asyncio
-import time
-from pyrogram import Client, raw
+from pyrogram import Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant, Forbidden, FloodWait
@@ -96,44 +95,15 @@ async def is_bot_admin(client, channel_id):
 
 #===============================================================#
 
-_LINK_OK_UNTIL = {}
-
-
-async def _link_is_valid(client, channel_id, link, request):
-    try:
-        peer = await client.resolve_peer(channel_id)
-        res = await client.invoke(raw.functions.messages.GetExportedChatInvite(peer=peer, link=link))
-        inv = res.invite
-        if getattr(inv, "revoked", False):
-            return False
-        exp = getattr(inv, "expire_date", None)
-        if exp:
-            exp_ts = exp.timestamp() if hasattr(exp, "timestamp") else exp
-            if exp_ts < time.time() + 30:
-                return False
-        limit = getattr(inv, "usage_limit", None)
-        if limit and (getattr(inv, "usage", 0) or 0) >= limit:
-            return False
-        return bool(getattr(inv, "request_needed", False)) == bool(request)
-    except Exception as e:
-        client.LOGGER(__name__, client.name).warning(f"Could not verify invite link for {channel_id}: {e}")
-        return False
-
-
 async def ensure_valid_link(client, channel_id):
     data = client.fsub_dict[channel_id]
     link, request = data[1], data[2]
-    now = time.time()
-    if link and _LINK_OK_UNTIL.get(channel_id, 0) > now:
-        return link
-    if link and await _link_is_valid(client, channel_id, link, request):
-        _LINK_OK_UNTIL[channel_id] = now + 60
+    if link:
         return link
     try:
         new = await client.create_chat_invite_link(channel_id, creates_join_request=request)
         data[1] = new.invite_link
         await client.mongodb.add_fsub_channel(channel_id, data)
-        _LINK_OK_UNTIL[channel_id] = now + 60
         return data[1]
     except Exception as e:
         client.LOGGER(__name__, client.name).warning(f"Error refreshing invite link for {channel_id}: {e}")
@@ -380,4 +350,5 @@ async def batch_auto_del_notification(messages, delay_time, chat_id, client):
 
 
 
-                      
+
+    
