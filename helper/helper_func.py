@@ -82,7 +82,7 @@ async def is_bot_admin(client, channel_id):
         bot = await client.get_chat_member(channel_id, "me")
         if bot.status in (ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER):
             if bot.privileges:
-                required_rights = ["can_invite_users", "can_delete_messages"]
+                required_rights = ["can_invite_users"]
                 missing_rights = [right for right in required_rights if not getattr(bot.privileges, right, False)]
                 if missing_rights:
                     return False, f"Bot is missing the following rights: {', '.join(missing_rights)}"
@@ -351,4 +351,4 @@ async def batch_auto_del_notification(messages, delay_time, chat_id, client):
 
 
 
-    
+                    
